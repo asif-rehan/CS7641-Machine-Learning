@@ -1,7 +1,6 @@
 import warnings
 
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import validation_curve, learning_curve, StratifiedKFold, GridSearchCV
@@ -16,12 +15,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import time
+import datetime
 
 warnings.filterwarnings('ignore')
 
 
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
-                        n_jobs=None, train_sizes=np.linspace(.1, 1.0, 5)):
+                        n_jobs=None, train_sizes=np.linspace(0.1, 1.0, 5)):
     '''
     Code taken from (Reference): Scikit-Learn example 
     https://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
@@ -273,10 +274,26 @@ def get_dataset2():
 
 
 def test_score(result_df, X_train, y_train, X_test, y_test):
-    for i in result_df:
-        pipe = result_df 
-        pipe.score(X_test, y_test)
-
+    result_df['Training Time'] = 0
+    result_df['Training Score'] = 0
+    result_df['Testing Time'] = 0
+    result_df['Testing Score'] = 0
+    
+    for row in result_df.iterrows():
+        pipe = row['Tuned Model']
+        start = datetime.datetime.now()
+        pipe.fit(X_train, y_train)
+        end = datetime.datetime.now()
+        training_time = (end - start).microseconds / 1000          #1
+        row['Training Time'] = training_time
+        row['Training Score'] = pipe.score(X_train, y_train)        #2 
+        
+        start = datetime.datetime.now()
+        row['Training Score'] = pipe.score(X_test, y_test)            #3
+        end = datetime.datetime.now()
+        testing_time = (end - start).microseconds / 1000               #4
+        row['Testing Time'] = testing_time
+    #now make some plots
 
 def main(verbose):
     
@@ -286,13 +303,7 @@ def main(verbose):
     X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size=0.3, random_state=42)
     X_train2, X_test2, y_train2, y_test2 = train_test_split(X2, y2, test_size=0.3, random_state=42)
     
-    '''
-    decision_tree:
-        vanilla fit
-        validation curves
-        gridsearch
-        learning curves
-    '''
+
     tuned_decision_tree_model_wine = decision_tree_experiments(X_train1, y_train1, data='wine')
     tuned_decision_tree_model_dataset2 = decision_tree_experiments(X_train1, y_train1, data='dataset2')
     generate_learning_curves(tuned_decision_tree_model_wine,
@@ -325,21 +336,24 @@ def main(verbose):
                              X_train1, y_train1, X_train2, y_train2)
     
     result_data_wine = [['Decision Tree', 'wine', tuned_decision_tree_model_wine],
-                   ['Boosted Tree', 'wine', tuned_boosted_tree_model_wine],
+                   #['Boosted Tree', 'wine', tuned_boosted_tree_model_wine],
                    ['kNN', 'wine', tuned_knn_model_wine],
                    ['Neural Network', 'wine', tuned_neural_network_model_wine],
-                   ['SVM', 'wine', tuned_support_vector_machine_model_wine]]
+                   #['SVM', 'wine', tuned_support_vector_machine_model_wine]
+                   ]
 
-    result_data_2 = [['Decision Tree', 'dataset2', tuned_decision_tree_model_dataset2],
-                   ['Boosted Tree', 'dataset2', tuned_boosted_tree_model_dataset2],
-                   ['kNN', 'dataset2', tuned_knn_model_dataset2],
-                   ['Neural Network', 'dataset2', tuned_neural_network_model_dataset2],
-                   ['SVM', 'dataset2', tuned_support_vector_machine_model_dataset2]]
+    #===============================================================================================
+    # result_data_2 = [['Decision Tree', 'dataset2', tuned_decision_tree_model_dataset2],
+    #                ['Boosted Tree', 'dataset2', tuned_boosted_tree_model_dataset2],
+    #                ['kNN', 'dataset2', tuned_knn_model_dataset2],
+    #                ['Neural Network', 'dataset2', tuned_neural_network_model_dataset2],
+    #                ['SVM', 'dataset2', tuned_support_vector_machine_model_dataset2]]
+    #===============================================================================================
                             
     result_df_wine = pd.DataFrame(result_data_wine, columns=['Model', 'Dataset', 'Tuned Model'])
-    result_df_2 = pd.DataFrame(result_data_2, columns=['Model', 'Dataset', 'Tuned Model'])
+    #result_df_2 = pd.DataFrame(result_data_2, columns=['Model', 'Dataset', 'Tuned Model'])
     test_score(result_df_wine, X_train1, y_train1, X_test1, y_test1)
-    test_score(result_df_2, X_train2, y_train2, X_test2, y_test2)
+    #test_score(result_df_2, X_train2, y_train2, X_test2, y_test2)
     
     
 def generate_learning_curves(tuned_model_1, tuned_model_2, X_train1, y_train1, X_train2, y_train2):
