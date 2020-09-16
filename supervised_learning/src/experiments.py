@@ -20,15 +20,6 @@ import seaborn as sns
 warnings.filterwarnings('ignore')
 
 
-
-
-
-
-
-
-
-
-
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
                         n_jobs=None, train_sizes=np.linspace(.1, 1.0, 5)):
     '''
@@ -131,7 +122,7 @@ def decision_tree_experiments(X_train, y_train, data='wine'):
     vanilla_fit(X_train, y_train, pipe)
     
     
-    min_samples_split_range = np.arange(1, 300, 10)
+    min_samples_split_range = np.arange(2, 300, 10)
     min_samples_leaf_range = np.arange(1, 160, 10)
     ccp_alpha_range = np.linspace(0, 0.1, 10)
     max_depth_range = np.arange(2, 25, 1)
@@ -226,29 +217,25 @@ def support_vector_machine_experiments(X_train, y_train, data='wine'):
                                        pipe, X_train, y_train)
     return tuned_model    
 
-def boosted_tr_experiments(base, X_train, y_train, data='wine'):
+def boosted_tree_experiments(base, X_train, y_train, data='wine'):
     pipe =  Pipeline([('std', StandardScaler()), 
                  ('cfr', AdaBoostClassifier(base_estimator=base))])
     vanilla_fit(X_train, y_train, pipe)
     
-    C_range = np.logspace(-2, 3, 6)
-    gamma_range = np.logspace(-6, -1, 5)
-    kernel_options = ['linear', 'poly', 'rbf', 'sigmoid']
+    n_estimators_range = np.arange(1,1000,50)
+    learning_rate_range = np.linspace(0.01, 1, 20)
     
-    generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine', 
-                              param_name="C", 
-                              search_range=C_range, data=data)
-    generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine', 
-                                  param_name="gamma", 
-                                  search_range=gamma_range, data=data)    
-    generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine', 
-                                  param_name="kernel", 
-                                  search_range=kernel_options, data=data)    
+    generate_validation_curve(pipe, X_train, y_train, model='Boosted Tree', 
+                              param_name="n_estimators", 
+                              search_range=n_estimators_range, data=data)
+    generate_validation_curve(pipe, X_train, y_train, model='Boosted Tree', 
+                              param_name="learning_rate", 
+                              search_range=learning_rate_range, data=data)
     
     
-    tuned_model = tune_hyperparameter({'cfr__C': C_range,
-                                      'cfr__kernel': kernel_options,
-                                      'cfr__gamma': gamma_range}, 
+    tuned_model = tune_hyperparameter({'cfr__learning_rate': learning_rate_range,
+              'cfr__n_estimators': np.arange(1,1000,50)
+              }, 
                                        pipe, X_train, y_train)
     return tuned_model    
 
@@ -284,7 +271,8 @@ def get_dataset2():
     y2 = None
     return X2, y2
 
-
+def test_score(*pipelines):
+    pipe.score(X_test, y_test)
 
 def main(verbose):
     
@@ -309,6 +297,13 @@ def main(verbose):
                              tuned_decision_tree_model_dataset2,
                              X_train1, y_train1, X_train2, y_train2)
     
+    tuned_boosted_tree_model_wine = boosted_tree_experiments(tuned_decision_tree_model_wine.best_estimator_.get_params()['cfr'],
+                                                             X_train1, y_train1, data='wine')
+    tuned_boosted_tree_model_dataset2 = boosted_tree_experiments(tuned_decision_tree_model_dataset2.best_estimator_.get_params()['cfr'], X_train1, y_train1, data='dataset2')
+    generate_learning_curves(tuned_boosted_tree_model_wine, 
+                             tuned_boosted_tree_model_dataset2,
+                             X_train1, y_train1, X_train2, y_train2)
+    
     tuned_knn_model_wine = knn_experiments(X_train1, y_train1, data='wine')
     tuned_knn_model_dataset2 = knn_experiments(X_train1, y_train1, data='dataset2')
     generate_learning_curves(tuned_knn_model_wine, 
@@ -326,6 +321,9 @@ def main(verbose):
     generate_learning_curves(tuned_support_vector_machine_model_wine, 
                              tuned_support_vector_machine_model_dataset2,
                              X_train1, y_train1, X_train2, y_train2)
+    
+    test_score()
+    
     
     
 def generate_learning_curves(tuned_model_1, tuned_model_2, X_train1, y_train1, X_train2, y_train2):
