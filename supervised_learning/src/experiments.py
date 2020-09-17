@@ -115,7 +115,7 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
 def tune_hyperparameter(param_grid, pipe, X_train, y_train):
     cv = StratifiedKFold(n_splits=5, random_state=42)
     tuned_model = GridSearchCV(pipe, param_grid, cv=cv, n_jobs=-1)
-    tuned_model.fit(X_train, y_train)
+    #tuned_model.fit(X_train, y_train)
     print("Tuned params: {}".format(tuned_model.best_params_))
     
     ypred = tuned_model.predict(X_train)
@@ -276,29 +276,38 @@ def get_dataset2():
     y2 = None
     return X2, y2
 
-
 def test_score(result_df, X_train, y_train, X_test, y_test):
-    result_df['Training Time'] = 0
-    result_df['Training Score'] = 0
-    result_df['Testing Time'] = 0
-    result_df['Testing Score'] = 0
+    result_df['Training Time (sec)'] = ""
+    result_df['Training Score'] = ""
+    result_df['Testing Time (sec)'] = ""
+    result_df['Testing Score'] = ""
     
     for index, row in result_df.iterrows():
-        pipe = row['Tuned Model'].best_estimator_
+        tuned_model = row['Tuned Model'].best_estimator_
         start = datetime.datetime.now()
-        pipe.fit(X_train, y_train)
+        tuned_model.fit(X_train, y_train)
         end = datetime.datetime.now()
-        training_time = (end - start).microseconds / 1000          #1
-        result_df.at[index, 'Training Time'] = training_time
-        result_df.at[index, 'Training Score'] = pipe.score(X_train, y_train)        #2 
+        training_time = (end - start).microseconds / (1000*1000)          #1
+        result_df.at[index, 'Training Time (sec)'] = training_time
+        training_score = tuned_model.score(X_train, y_train)
+        print(training_score)
+        result_df.at[index, 'Training Score'] = training_score        #2 
         
         start = datetime.datetime.now()
-        result_df.at[index, 'Training Score'] = pipe.score(X_test, y_test)            #3
+        test_score = tuned_model.score(X_test, y_test)
+        #print(test_score)
+        result_df.at[index, 'Testing Score'] = test_score            #3
         end = datetime.datetime.now()
-        testing_time = (end - start).microseconds / 1000               #4
-        result_df.at[index, 'Testing Time'] = testing_time
+        testing_time = (end - start).microseconds / (1000*1000)               #4
+        result_df.at[index, 'Testing Time (sec)'] = testing_time
+    
     print(result_df)
+    
     #now make some plots
+    result_df.set_index('Tuned Model', inplace=True)
+    result_df[['Training Score', 'Testing Score']].plot(kind='bar')
+    result_df[['Training Time (sec)', 'Testing Time (sec)']].plot(kind='bar')
+    return result_df
 
 def main(verbose=True, warm_start=False):
     X1, y1 = get_dataset1(verbose)
@@ -384,24 +393,23 @@ def main(verbose=True, warm_start=False):
     
     
     result_data_wine = [['Decision Tree', 'wine', tuned_decision_tree_model_wine],
-                   #['Boosted Tree', 'wine', tuned_boosted_tree_model_wine],
+                   ['Boosted Tree', 'wine', tuned_boosted_tree_model_wine],
                    ['kNN', 'wine', tuned_knn_model_wine],
                    ['Neural Network', 'wine', tuned_neural_network_model_wine],
-                   #['SVM', 'wine', tuned_support_vector_machine_model_wine]
+                   ['SVM', 'wine', tuned_support_vector_machine_model_wine]
                    ]
 
-    #===============================================================================================
-    # result_data_2 = [['Decision Tree', 'dataset2', tuned_decision_tree_model_dataset2],
-    #                ['Boosted Tree', 'dataset2', tuned_boosted_tree_model_dataset2],
-    #                ['kNN', 'dataset2', tuned_knn_model_dataset2],
-    #                ['Neural Network', 'dataset2', tuned_neural_network_model_dataset2],
-    #                ['SVM', 'dataset2', tuned_support_vector_machine_model_dataset2]]
-    #===============================================================================================
+    result_data_2 = [['Decision Tree', 'dataset2', tuned_decision_tree_model_dataset2],
+                   ['Boosted Tree', 'dataset2', tuned_boosted_tree_model_dataset2],
+                   ['kNN', 'dataset2', tuned_knn_model_dataset2],
+                   ['Neural Network', 'dataset2', tuned_neural_network_model_dataset2],
+                   ['SVM', 'dataset2', tuned_support_vector_machine_model_dataset2]]
                             
     result_df_wine = pd.DataFrame(result_data_wine, columns=['Model', 'Dataset', 'Tuned Model'])
-    #result_df_2 = pd.DataFrame(result_data_2, columns=['Model', 'Dataset', 'Tuned Model'])
+    result_df_2 = pd.DataFrame(result_data_2, columns=['Model', 'Dataset', 'Tuned Model'])
     test_score(result_df_wine, X_train1, y_train1, X_test1, y_test1)
-    #test_score(result_df_2, X_train2, y_train2, X_test2, y_test2)
+    test_score(result_df_2, X_train2, y_train2, X_test2, y_test2)
+    return result_df_wine, result_df_2
     
     
 def generate_learning_curves(tuned_model_1, tuned_model_2, X_train1, y_train1, X_train2, y_train2):
