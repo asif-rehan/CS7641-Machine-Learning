@@ -17,8 +17,12 @@ import pandas as pd
 import seaborn as sns
 import time
 import datetime
+import pickle
+import os
 
 warnings.filterwarnings('ignore')
+
+this_dir =  os.path.dirname(__file__)
 
 
 def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
@@ -242,7 +246,7 @@ def boosted_tree_experiments(base, X_train, y_train, data='wine'):
 
 
 def get_dataset1(verbose=True):
-    df = pd.read_csv(r'..\data\winequality-white.csv', sep=';')
+    df = pd.read_csv(os.path.join(os.pardir, "models", "winequality-white.csv"), sep=';')
     y1 = df['quality'] >= 7
     X1 = df.drop(columns='quality')
     
@@ -279,61 +283,105 @@ def test_score(result_df, X_train, y_train, X_test, y_test):
     result_df['Testing Time'] = 0
     result_df['Testing Score'] = 0
     
-    for row in result_df.iterrows():
-        pipe = row['Tuned Model']
+    for index, row in result_df.iterrows():
+        pipe = row['Tuned Model'].best_estimator_
         start = datetime.datetime.now()
         pipe.fit(X_train, y_train)
         end = datetime.datetime.now()
         training_time = (end - start).microseconds / 1000          #1
-        row['Training Time'] = training_time
-        row['Training Score'] = pipe.score(X_train, y_train)        #2 
+        result_df.at[index, 'Training Time'] = training_time
+        result_df.at[index, 'Training Score'] = pipe.score(X_train, y_train)        #2 
         
         start = datetime.datetime.now()
-        row['Training Score'] = pipe.score(X_test, y_test)            #3
+        result_df.at[index, 'Training Score'] = pipe.score(X_test, y_test)            #3
         end = datetime.datetime.now()
         testing_time = (end - start).microseconds / 1000               #4
-        row['Testing Time'] = testing_time
+        result_df.at[index, 'Testing Time'] = testing_time
+    print(result_df)
     #now make some plots
 
-def main(verbose):
-    
+def main(verbose=True, warm_start=False):
     X1, y1 = get_dataset1(verbose)
     X2, y2 = get_dataset2()
     
     X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size=0.3, random_state=42)
     X_train2, X_test2, y_train2, y_test2 = train_test_split(X2, y2, test_size=0.3, random_state=42)
+    if not warm_start:
+        
+        #===============================================================================================
+        # # Decision Tree
+        #===============================================================================================
+        tuned_decision_tree_model_wine = decision_tree_experiments(X_train1, y_train1, data='wine')
+        tuned_decision_tree_model_dataset2 = decision_tree_experiments(X_train1, y_train1, data='dataset2')
+        generate_learning_curves(tuned_decision_tree_model_wine,
+                                 tuned_decision_tree_model_dataset2,
+                                 X_train1, y_train1, X_train2, y_train2)
+        pickle.dump(tuned_decision_tree_model_wine, open(os.path.join(os.pardir, "models", "tuned_decision_tree_model_wine.pkl"), 'wb'))
+        pickle.dump(tuned_decision_tree_model_dataset2, open(os.path.join(os.pardir, "models", "tuned_decision_tree_model_dataset2.pkl"), 'wb'))
     
-
-    tuned_decision_tree_model_wine = decision_tree_experiments(X_train1, y_train1, data='wine')
-    tuned_decision_tree_model_dataset2 = decision_tree_experiments(X_train1, y_train1, data='dataset2')
-    generate_learning_curves(tuned_decision_tree_model_wine,
-                             tuned_decision_tree_model_dataset2,
-                             X_train1, y_train1, X_train2, y_train2)
+        #===============================================================================================
+        # Boosted Tree    
+        #===============================================================================================
+        tuned_boosted_tree_model_wine = boosted_tree_experiments(tuned_decision_tree_model_wine.best_estimator_.get_params()['cfr'],
+                                                                 X_train1, y_train1, data='wine')
+        tuned_boosted_tree_model_dataset2 = boosted_tree_experiments(tuned_decision_tree_model_dataset2.best_estimator_.get_params()['cfr'], X_train1, y_train1, data='dataset2')
+        generate_learning_curves(tuned_boosted_tree_model_wine,
+                                 tuned_boosted_tree_model_dataset2,
+                                 X_train1, y_train1, X_train2, y_train2)
+        pickle.dump(tuned_boosted_tree_model_wine, open(os.path.join(os.pardir, "models", "tuned_boosted_tree_model_wine.pkl"), 'wb'))
+        pickle.dump(tuned_boosted_tree_model_dataset2, open(os.path.join(os.pardir, "models", "tuned_boosted_tree_model_dataset2.pkl"), 'wb'))
+        #===============================================================================================
+        # kNN
+        #===============================================================================================
+        tuned_knn_model_wine = knn_experiments(X_train1, y_train1, data='wine')
+        tuned_knn_model_dataset2 = knn_experiments(X_train1, y_train1, data='dataset2')
+        generate_learning_curves(tuned_knn_model_wine,
+                                 tuned_knn_model_dataset2,
+                                 X_train1, y_train1, X_train2, y_train2)
+        pickle.dump(tuned_knn_model_wine, open(os.path.join(os.pardir, "models", "tuned_knn_model_wine.pkl"), 'wb'))
+        pickle.dump(tuned_knn_model_dataset2, open(os.path.join(os.pardir, "models", "tuned_knn_model_dataset2.pkl"), 'wb'))
+        #===============================================================================================
+        # Neural Network
+        #===============================================================================================
+        tuned_neural_network_model_wine = neural_network_experiments(X_train1, y_train1, data='wine')
+        tuned_neural_network_model_dataset2 = neural_network_experiments(X_train1, y_train1, data='dataset2')
+        generate_learning_curves(tuned_neural_network_model_wine,
+                                 tuned_neural_network_model_dataset2,
+                                 X_train1, y_train1, X_train2, y_train2)
+        pickle.dump(tuned_neural_network_model_wine, open(os.path.join(os.pardir, "models", "tuned_neural_network_model_wine.pkl"), 'wb'))
+        pickle.dump(tuned_neural_network_model_dataset2, open(os.path.join(os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'wb'))
     
-    tuned_boosted_tree_model_wine = boosted_tree_experiments(tuned_decision_tree_model_wine.best_estimator_.get_params()['cfr'],
-                                                             X_train1, y_train1, data='wine')
-    tuned_boosted_tree_model_dataset2 = boosted_tree_experiments(tuned_decision_tree_model_dataset2.best_estimator_.get_params()['cfr'], X_train1, y_train1, data='dataset2')
-    generate_learning_curves(tuned_boosted_tree_model_wine,
-                             tuned_boosted_tree_model_dataset2,
-                             X_train1, y_train1, X_train2, y_train2)
+        #===============================================================================================
+        # Support Vector Machine
+        #===============================================================================================    
+        tuned_support_vector_machine_model_wine = support_vector_machine_experiments(X_train1, y_train1, data='wine')
+        tuned_support_vector_machine_model_dataset2 = support_vector_machine_experiments(X_train1, y_train1, data='dataset2')
+        generate_learning_curves(tuned_support_vector_machine_model_wine,
+                                 tuned_support_vector_machine_model_dataset2,
+                                 X_train1, y_train1, X_train2, y_train2)
+        pickle.dump(tuned_support_vector_machine_model_wine, open(os.path.join(os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'wb'))
+        pickle.dump(tuned_support_vector_machine_model_dataset2, open(os.path.join(os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'wb'))
+        #===============================================================================================
+        # Final model comparison
+        #===============================================================================================
     
-    tuned_knn_model_wine = knn_experiments(X_train1, y_train1, data='wine')
-    tuned_knn_model_dataset2 = knn_experiments(X_train1, y_train1, data='dataset2')
-    generate_learning_curves(tuned_knn_model_wine,
-                             tuned_knn_model_dataset2,
-                             X_train1, y_train1, X_train2, y_train2)
+    if warm_start:
+        tuned_decision_tree_model_wine = pickle.load(open(os.path.join(os.pardir, "models", "tuned_decision_tree_model_wine.pkl"), 'rb'))
+        tuned_decision_tree_model_dataset2 = pickle.load(open(os.path.join(os.pardir, "models", "tuned_decision_tree_model_dataset2.pkl"), 'rb'))
+        
+        tuned_boosted_tree_model_wine = pickle.load(open(os.path.join(os.pardir, "models", "tuned_boosted_tree_model_wine.pkl"), 'rb'))
+        tuned_boosted_tree_model_dataset2 = pickle.load(open(os.path.join(os.pardir, "models", "tuned_boosted_tree_model_dataset2.pkl"), 'rb'))
+        
+        tuned_knn_model_wine = pickle.load(open(os.path.join(os.pardir, "models", "tuned_knn_model_wine.pkl"), 'rb'))
+        tuned_knn_model_dataset2 = pickle.load(open(os.path.join(os.pardir, "models", "tuned_knn_model_dataset2.pkl"), 'rb'))
+        
+        tuned_neural_network_model_wine = pickle.load(open(os.path.join(os.pardir, "models", "tuned_neural_network_model_wine.pkl"), 'rb'))
+        tuned_neural_network_model_dataset2 = pickle.load(open(os.path.join(os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'rb'))
+        
+        tuned_support_vector_machine_model_wine = pickle.load(open(os.path.join(os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'rb'))
+        tuned_support_vector_machine_model_dataset2 = pickle.load(open(os.path.join(os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'rb'))
+        
     
-    tuned_neural_network_model_wine = neural_network_experiments(X_train1, y_train1, data='wine')
-    tuned_neural_network_model_dataset2 = neural_network_experiments(X_train1, y_train1, data='dataset2')
-    generate_learning_curves(tuned_neural_network_model_wine,
-                             tuned_neural_network_model_dataset2,
-                             X_train1, y_train1, X_train2, y_train2)
-    
-    tuned_support_vector_machine_model_wine = support_vector_machine_experiments(X_train1, y_train1, data='wine')
-    tuned_support_vector_machine_model_dataset2 = support_vector_machine_experiments(X_train1, y_train1, data='dataset2')
-    generate_learning_curves(tuned_support_vector_machine_model_wine,
-                             tuned_support_vector_machine_model_dataset2,
-                             X_train1, y_train1, X_train2, y_train2)
     
     result_data_wine = [['Decision Tree', 'wine', tuned_decision_tree_model_wine],
                    #['Boosted Tree', 'wine', tuned_boosted_tree_model_wine],
