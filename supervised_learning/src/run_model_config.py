@@ -30,7 +30,7 @@ this_dir =  os.path.dirname(__file__)
 def vanilla_fit(X_train, y_train, pipe):
     pipe.fit(X_train, y_train)
     train_score = pipe.score(X_train, y_train)
-    print(train_score)
+    print('train score before hyperparameter tuning', train_score)
     # print(accuracy_score(y_test, pipe.predict(X_test)))
     return train_score
 
@@ -38,21 +38,20 @@ def vanilla_fit(X_train, y_train, pipe):
 
 
 def decision_tree_experiments(X_train, y_train, data='wine'):
-    pipe = Pipeline([('std', StandardScaler()), ('cfr', DecisionTreeClassifier())])
+    pipe = Pipeline([('std', StandardScaler()), ('cfr', DecisionTreeClassifier(random_state=42))])
     vanilla_fit(X_train, y_train, pipe)
     
-    #===============================================================================================
-    # min_samples_split_range = np.arange(2, 300, 10)
-    # min_samples_leaf_range = np.arange(1, 160, 10)
-    # ccp_alpha_range = np.linspace(0, 0.1, 10)
-    # max_depth_range = np.arange(2, 25, 1)
-    #===============================================================================================
+    min_samples_split_range = np.arange(2, 300, 30)
+    min_samples_leaf_range = np.arange(1, 160, 20)
+    ccp_alpha_range = np.linspace(0, 0.1, 5)
+    max_depth_range = np.arange(2, 25, 5)
 
-    min_samples_split_range = np.arange(2, 300, 150)
-    min_samples_leaf_range = np.arange(2, 160, 80)
-    ccp_alpha_range = np.linspace(0, 0.1, 2)
-    max_depth_range = np.arange(2, 10, 5)  
-    
+	#===============================================================================================
+    #min_samples_split_range = np.arange(2, 300, 150)
+    #min_samples_leaf_range = np.arange(2, 160, 80)
+    #ccp_alpha_range = np.linspace(0, 0.1, 2)
+    #max_depth_range = np.arange(2, 10, 5)  
+    #===============================================================================================
       
     generate_validation_curve(pipe, X_train, y_train, model='Decision Tree',
                               param_name="min_samples_leaf",
@@ -80,14 +79,14 @@ def knn_experiments(X_train, y_train, data='wine'):
     pipe = Pipeline([('std', StandardScaler()), ('cfr', KNeighborsClassifier())])
     vanilla_fit(X_train, y_train, pipe)
     
-    #===============================================================================================
-    # n_neighbors_range = np.arange(1, 50, 5)
-    # p_range = np.linspace(1, 3, 8)
-    # weights = ['uniform', 'distance']
-    #===============================================================================================
-    n_neighbors_range = np.arange(1, 50, 25)
-    p_range = np.linspace(1, 3, 2)
+    n_neighbors_range = np.arange(1, 50, 10)
+    p_range = np.linspace(1, 3, 5)
     weights = ['uniform', 'distance']
+    #===============================================================================================
+    #n_neighbors_range = np.arange(1, 50, 25)
+    #p_range = np.linspace(1, 3, 2)
+    #weights = ['uniform', 'distance']
+    #===============================================================================================
     generate_validation_curve(pipe, X_train, y_train, model='kNN',
                               param_name="n_neighbors",
                               search_range=n_neighbors_range, data=data)
@@ -107,16 +106,16 @@ def knn_experiments(X_train, y_train, data='wine'):
 
 
 def neural_network_experiments(X_train, y_train, data='wine'):
-    pipe = Pipeline([('std', StandardScaler()), ('cfr', MLPClassifier())])
+    pipe = Pipeline([('std', StandardScaler()), ('cfr', MLPClassifier(random_state=42))])
     vanilla_fit(X_train, y_train, pipe)
     
+    activation = ['identity', 'logistic', 'tanh', 'relu']
+    alpha = np.logspace(-4, 4, 5)
+
     #===============================================================================================
-    # activation = ['identity', 'logistic', 'tanh', 'relu']
-    # alpha = np.logspace(-4, 4, 9)
-    # 
+    #activation = ['relu']
+    #alpha = np.logspace(-4, 4, 2)
     #===============================================================================================
-    activation = ['relu']
-    alpha = np.logspace(-4, 4, 2)
     
     generate_validation_curve(pipe, X_train, y_train, model='Neural Network',
                               param_name="activation",
@@ -131,19 +130,21 @@ def neural_network_experiments(X_train, y_train, data='wine'):
 
 
 def support_vector_machine_experiments(X_train, y_train, data='wine'):
-    pipe = Pipeline([('std', StandardScaler()), ('cfr', SVC())])
+    pipe = Pipeline([('std', StandardScaler()), ('cfr', SVC(random_state=42))])
     vanilla_fit(X_train, y_train, pipe)
     
+    C_range = np.logspace(-2, 3, 5)
+    gamma_range = np.logspace(-6, -1, 4)
+    kernel_options = ['linear', 'poly', 'rbf', 'sigmoid']
+    
+    
     #===============================================================================================
-    # C_range = np.logspace(-2, 3, 6)
-    # gamma_range = np.logspace(-6, -1, 5)
-    # kernel_options = ['linear', 'poly', 'rbf', 'sigmoid']
+    #
+    #C_range = np.logspace(-2, 3, 1)
+    #gamma_range = np.logspace(-6, -1, 1)
+    #kernel_options = ['linear']
     # 
     #===============================================================================================
-        
-    C_range = np.logspace(-2, 3, 1)
-    gamma_range = np.logspace(-6, -1, 1)
-    kernel_options = ['linear']
     
     
     generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine',
@@ -165,17 +166,19 @@ def support_vector_machine_experiments(X_train, y_train, data='wine'):
 
 def boosted_tree_experiments(base, X_train, y_train, data='wine'):
     pipe = Pipeline([('std', StandardScaler()),
-                 ('cfr', AdaBoostClassifier(base_estimator=base))])
+                 ('cfr', AdaBoostClassifier(base_estimator=base, random_state=42))])
     vanilla_fit(X_train, y_train, pipe)
     
+    n_estimators_range = np.arange(1, 1000, 100)
+    learning_rate_range = np.linspace(0.01, 1, 5)
+    
     #===============================================================================================
-    # n_estimators_range = np.arange(1, 1000, 50)
-    # learning_rate_range = np.linspace(0.01, 1, 20)
+    #
+    #n_estimators_range = np.arange(1,3, 1)
+    #learning_rate_range = np.linspace(0.01, 1, 1)
     # 
     #===============================================================================================
     
-    n_estimators_range = np.arange(1,3, 1)
-    learning_rate_range = np.linspace(0.01, 1, 1)
     
     generate_validation_curve(pipe, X_train, y_train, model='Boosted Tree',
                               param_name="n_estimators",

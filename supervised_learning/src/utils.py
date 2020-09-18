@@ -27,12 +27,12 @@ this_dir =  os.path.dirname(__file__)
     
 def tune_hyperparameter(param_grid, pipe, X_train, y_train):
     cv = StratifiedKFold(n_splits=5, random_state=42)
-    tuned_model = GridSearchCV(pipe, param_grid, cv=cv, n_jobs=-1)
+    tuned_model = GridSearchCV(pipe, param_grid, cv=cv, n_jobs=-1, scoring='f1')
     tuned_model.fit(X_train, y_train)
     print("Tuned params: {}".format(tuned_model.best_params_))
     
     ypred = tuned_model.predict(X_train)
-    print(classification_report(y_train, ypred))
+    print('refit train metrics=', classification_report(y_train, ypred))
     return tuned_model
 
 
@@ -105,9 +105,11 @@ def generate_learning_curves(tuned_model_1, tuned_model_2, X_train1, y_train1, X
                         X_train1, y_train1, axes=axes[:, 0], ylim=(0.7, 1.01),
                         cv=StratifiedKFold(n_splits=5, random_state=42), n_jobs=-1)
     plot_learning_curve(tuned_model_2.best_estimator_
-                        , 'Dataset2',
+                        , 'Pima Data',
                         X_train2, y_train2, axes=axes[:, 1], ylim=(0.7, 1.01),
                         cv=StratifiedKFold(n_splits=5, random_state=42), n_jobs=-1)
+    fig.suptitle('Learning Curves for {}.png'.format(model))
+    plt.tight_layout()
     plt.savefig(os.path.join(this_dir,os.pardir, "plot", '{}_learning_curve.png'.format(model)))
     #plt.show()
 
@@ -120,8 +122,23 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
                                                  n_jobs=-1)
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    plt.plot(search_range, np.mean(train_scores, axis=1), label='Training score')
-    plt.plot(search_range, np.mean(test_scores, axis=1), label='Cross-validation score')
+    
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    
+    #training validation curve
+    plt.fill_between(search_range, train_scores_mean - train_scores_std,
+                         train_scores_mean + train_scores_std, alpha=0.1,
+                         color="r")
+    plt.plot(search_range, np.mean(train_scores, axis=1), 'o-', color="r", label='Training score')
+    
+    #Cross validation curve
+    plt.fill_between(search_range, test_scores_mean - test_scores_std,
+                         test_scores_mean + test_scores_std, alpha=0.1,
+                         color="b")
+    plt.plot(search_range, np.mean(test_scores, axis=1), 'o-', color="b", label='Cross-validation score')
     plt.title('Validation curve for {}'.format(model))
     plt.xlabel(param_name)
     plt.ylabel("Classification score")
@@ -131,6 +148,7 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
 
 
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    plt.tight_layout()
     plt.savefig(os.path.join(this_dir,this_dir, os.pardir, "plot", 
                         '{}_val_curve_{}_{}.png'.format(data, model, param_name)), figsize=(5, 5))
     #plt.show()

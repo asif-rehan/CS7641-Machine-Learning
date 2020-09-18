@@ -1,6 +1,9 @@
 import warnings
 
 warnings.filterwarnings('ignore')
+from warnings import simplefilter
+from sklearn.exceptions import ConvergenceWarning
+simplefilter("ignore", category=ConvergenceWarning)
 
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import classification_report
@@ -32,9 +35,9 @@ this_dir =  os.path.dirname(__file__)
 
 def test_score(result_df, X_train, y_train, X_test, y_test, data):
     result_df['Training Time (sec)'] = ""
-    result_df['Training Score'] = ""
+    result_df['Training F1 Score'] = ""
     result_df['Testing Time (sec)'] = ""
-    result_df['Testing Score'] = ""
+    result_df['Testing F1 Score'] = ""
     
     for index, row in result_df.iterrows():
         tuned_model = row['Tuned Model'].best_estimator_
@@ -45,12 +48,12 @@ def test_score(result_df, X_train, y_train, X_test, y_test, data):
         result_df.at[index, 'Training Time (sec)'] = training_time
         training_score = tuned_model.score(X_train, y_train)
         print(training_score)
-        result_df.at[index, 'Training Score'] = training_score        #2 
+        result_df.at[index, 'Training F1 Score'] = training_score        #2 
         
         start = datetime.datetime.now()
         test_score = tuned_model.score(X_test, y_test)
         #print(test_score)
-        result_df.at[index, 'Testing Score'] = test_score            #3
+        result_df.at[index, 'Testing F1 Score'] = test_score            #3
         end = datetime.datetime.now()
         testing_time = (end - start).microseconds / (1000*1000)               #4
         result_df.at[index, 'Testing Time (sec)'] = testing_time
@@ -59,15 +62,20 @@ def test_score(result_df, X_train, y_train, X_test, y_test, data):
     
     #now make some plots
     result_df.set_index('Model', inplace=True)
-    result_df[['Training Score', 'Testing Score']].plot(kind='bar')
+    result_df[['Training F1 Score', 'Testing F1 Score']].plot(kind='bar')
+    plt.grid()
     plt.ylabel('Score')
     plt.title('Classification Score-{} Data'.format(data))
+    plt.tight_layout()
+    
     plt.savefig(os.path.join(this_dir,this_dir, os.pardir, "plot", '{}_score.png'.format(data)))
 
 
     result_df[['Training Time (sec)', 'Testing Time (sec)']].plot(kind='bar')
+    plt.grid()
     plt.ylabel('Time (sec)')
     plt.title('Training and Testing Time-{} Data'.format(data))
+    plt.tight_layout()
     plt.savefig(os.path.join(this_dir,os.pardir, "plot", '{}_time.png'.format(data)))
     
     return result_df
@@ -85,8 +93,10 @@ def main(verbose=True, warm_start=False):
         # # Decision Tree
         #===============================================================================================
         ''')
+        print("\twine\n----")
         tuned_decision_tree_model_wine = decision_tree_experiments(X_train1, y_train1, data='wine')
-        tuned_decision_tree_model_dataset2 = decision_tree_experiments(X_train1, y_train1, data='dataset2')
+        print("\tpima\n----")
+        tuned_decision_tree_model_dataset2 = decision_tree_experiments(X_train2, y_train2, data='pima')
         generate_learning_curves(tuned_decision_tree_model_wine,
                                  tuned_decision_tree_model_dataset2,
                                  X_train1, y_train1, X_train2, y_train2,
@@ -99,9 +109,11 @@ def main(verbose=True, warm_start=False):
         # Boosted Tree    
         #===============================================================================================
         ''')
+        print("\twine\n----")
         tuned_boosted_tree_model_wine = boosted_tree_experiments(tuned_decision_tree_model_wine.best_estimator_.get_params()['cfr'],
                                                                  X_train1, y_train1, data='wine')
-        tuned_boosted_tree_model_dataset2 = boosted_tree_experiments(tuned_decision_tree_model_dataset2.best_estimator_.get_params()['cfr'], X_train1, y_train1, data='dataset2')
+        print("\tpima\n----")
+        tuned_boosted_tree_model_dataset2 = boosted_tree_experiments(tuned_decision_tree_model_dataset2.best_estimator_.get_params()['cfr'], X_train2, y_train2, data='pima')
         generate_learning_curves(tuned_boosted_tree_model_wine,
                                  tuned_boosted_tree_model_dataset2,
                                  X_train1, y_train1, X_train2, y_train2, 'Boosted Tree')
@@ -112,8 +124,10 @@ def main(verbose=True, warm_start=False):
         # kNN
         #===============================================================================================
         ''')
+        print("\twine\n----")
         tuned_knn_model_wine = knn_experiments(X_train1, y_train1, data='wine')
-        tuned_knn_model_dataset2 = knn_experiments(X_train1, y_train1, data='dataset2')
+        print("\tpima\n----")
+        tuned_knn_model_dataset2 = knn_experiments(X_train2, y_train2, data='pima')
         generate_learning_curves(tuned_knn_model_wine,
                                  tuned_knn_model_dataset2,
                                  X_train1, y_train1, X_train2, y_train2, 'kNN')
@@ -124,8 +138,10 @@ def main(verbose=True, warm_start=False):
         # Neural Network
         #===============================================================================================
         ''')
+        print("\twine\n----")
         tuned_neural_network_model_wine = neural_network_experiments(X_train1, y_train1, data='wine')
-        tuned_neural_network_model_dataset2 = neural_network_experiments(X_train1, y_train1, data='dataset2')
+        print("\tpima\n----")
+        tuned_neural_network_model_dataset2 = neural_network_experiments(X_train2, y_train2, data='pima')
         generate_learning_curves(tuned_neural_network_model_wine,
                                  tuned_neural_network_model_dataset2,
                                  X_train1, y_train1, X_train2, y_train2, 'Neural Network')
@@ -137,8 +153,10 @@ def main(verbose=True, warm_start=False):
         # Support Vector Machine
         #===============================================================================================    
         ''')
+        print("\twine\n----")
         tuned_support_vector_machine_model_wine = support_vector_machine_experiments(X_train1, y_train1, data='wine')
-        tuned_support_vector_machine_model_dataset2 = support_vector_machine_experiments(X_train1, y_train1, data='dataset2')
+        print("\tpima\n----")
+        tuned_support_vector_machine_model_dataset2 = support_vector_machine_experiments(X_train2, y_train2, data='pima')
         generate_learning_curves(tuned_support_vector_machine_model_wine,
                                  tuned_support_vector_machine_model_dataset2,
                                  X_train1, y_train1, X_train2, y_train2, "Support Vector Machine")
@@ -174,17 +192,17 @@ def main(verbose=True, warm_start=False):
                    ['SVM', 'wine', tuned_support_vector_machine_model_wine]
                    ]
 
-    result_data_2 = [['Decision Tree', 'dataset2', tuned_decision_tree_model_dataset2],
-                   ['Boosted Tree', 'dataset2', tuned_boosted_tree_model_dataset2],
-                   ['kNN', 'dataset2', tuned_knn_model_dataset2],
-                   ['Neural Network', 'dataset2', tuned_neural_network_model_dataset2],
-                   ['SVM', 'dataset2', tuned_support_vector_machine_model_dataset2]]
+    result_data_2 = [['Decision Tree', 'pima', tuned_decision_tree_model_dataset2],
+                   ['Boosted Tree', 'pima', tuned_boosted_tree_model_dataset2],
+                   ['kNN', 'pima', tuned_knn_model_dataset2],
+                   ['Neural Network', 'pima', tuned_neural_network_model_dataset2],
+                   ['SVM', 'pima', tuned_support_vector_machine_model_dataset2]]
                             
     result_df_wine = pd.DataFrame(result_data_wine, columns=['Model', 'Dataset', 'Tuned Model'])
-    result_df_2 = pd.DataFrame(result_data_2, columns=['Model', 'Dataset', 'Tuned Model'])
+    result_df_pima = pd.DataFrame(result_data_2, columns=['Model', 'Dataset', 'Tuned Model'])
     test_score(result_df_wine, X_train1, y_train1, X_test1, y_test1, 'Wine Quality')
-    test_score(result_df_2, X_train2, y_train2, X_test2, y_test2, 'Pima Diabetes')
-    return result_df_wine, result_df_2
+    test_score(result_df_pima, X_train2, y_train2, X_test2, y_test2, 'Pima Diabetes')
+    return result_df_wine, result_df_pima
     
 
 if __name__ == '__main__':
