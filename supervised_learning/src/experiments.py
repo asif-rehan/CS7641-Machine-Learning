@@ -40,14 +40,14 @@ def test_score(result_df, X_train, y_train, X_test, y_test, data):
     result_df['Testing F1 Score'] = ""
     
     for index, row in result_df.iterrows():
-        tuned_model = row['Tuned Model'].best_estimator_
+        tuned_model = row['Tuned Model']
         start = datetime.datetime.now()
         tuned_model.fit(X_train, y_train)
         end = datetime.datetime.now()
         training_time = (end - start).microseconds / (1000*1000)          #1
         result_df.at[index, 'Training Time (sec)'] = training_time
         training_score = tuned_model.score(X_train, y_train)
-        print(training_score)
+        #print(training_score)
         result_df.at[index, 'Training F1 Score'] = training_score        #2 
         
         start = datetime.datetime.now()
@@ -80,109 +80,126 @@ def test_score(result_df, X_train, y_train, X_test, y_test, data):
     
     return result_df
 
-def main(verbose=True, warm_start=False):
+def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boost']):
     X1, y1 = get_dataset1(verbose)
-    X2, y2 = get_dataset2()
+    X2, y2 = get_dataset2(verbose)
     
     X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size=0.3, random_state=42)
     X_train2, X_test2, y_train2, y_test2 = train_test_split(X2, y2, test_size=0.3, random_state=42)
     if not warm_start:
         
-        print('''
-        #===============================================================================================
-        # # Decision Tree
-        #===============================================================================================
-        ''')
-        print("\twine\n----")
-        tuned_decision_tree_model_wine = decision_tree_experiments(X_train1, y_train1, data='wine')
-        print("\tpima\n----")
-        tuned_decision_tree_model_dataset2 = decision_tree_experiments(X_train2, y_train2, data='pima')
-        generate_learning_curves(tuned_decision_tree_model_wine,
-                                 tuned_decision_tree_model_dataset2,
-                                 X_train1, y_train1, X_train2, y_train2,
-                                 'Decision Tree')
-        pickle.dump(tuned_decision_tree_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_wine.pkl"), 'wb'))
-        pickle.dump(tuned_decision_tree_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_dataset2.pkl"), 'wb'))
+        if 'dt' in models:
+            print('''
+            #===============================================================================================
+            # # Decision Tree
+            #===============================================================================================
+            ''')
+            if warm_start:
+                tuned_decision_tree_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_wine.pkl"), 'rb'))
+                tuned_decision_tree_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_dataset2.pkl"), 'rb'))
+            else:
+                print("\twine\n----")
+                tuned_decision_tree_model_wine = decision_tree_experiments(X_train1, y_train1, data='wine')
+                print("\tpima\n----")
+                tuned_decision_tree_model_dataset2 = decision_tree_experiments(X_train2, y_train2, data='pima')
+                generate_learning_curves(tuned_decision_tree_model_wine,
+                                         tuned_decision_tree_model_dataset2,
+                                         X_train1, y_train1, X_train2, y_train2,
+                                         'Decision Tree')
+                pickle.dump(tuned_decision_tree_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_wine.pkl"), 'wb'))
+                pickle.dump(tuned_decision_tree_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_dataset2.pkl"), 'wb'))
     
-        print('''
-        #===============================================================================================
-        # Boosted Tree    
-        #===============================================================================================
-        ''')
-        print("\twine\n----")
-        tuned_boosted_tree_model_wine = boosted_tree_experiments(tuned_decision_tree_model_wine.best_estimator_.get_params()['cfr'],
-                                                                 X_train1, y_train1, data='wine')
-        print("\tpima\n----")
-        tuned_boosted_tree_model_dataset2 = boosted_tree_experiments(tuned_decision_tree_model_dataset2.best_estimator_.get_params()['cfr'], X_train2, y_train2, data='pima')
-        generate_learning_curves(tuned_boosted_tree_model_wine,
-                                 tuned_boosted_tree_model_dataset2,
-                                 X_train1, y_train1, X_train2, y_train2, 'Boosted Tree')
-        pickle.dump(tuned_boosted_tree_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_wine.pkl"), 'wb'))
-        pickle.dump(tuned_boosted_tree_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_dataset2.pkl"), 'wb'))
-        print('''
-        #===============================================================================================
-        # kNN
-        #===============================================================================================
-        ''')
-        print("\twine\n----")
-        tuned_knn_model_wine = knn_experiments(X_train1, y_train1, data='wine')
-        print("\tpima\n----")
-        tuned_knn_model_dataset2 = knn_experiments(X_train2, y_train2, data='pima')
-        generate_learning_curves(tuned_knn_model_wine,
-                                 tuned_knn_model_dataset2,
-                                 X_train1, y_train1, X_train2, y_train2, 'kNN')
-        pickle.dump(tuned_knn_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_wine.pkl"), 'wb'))
-        pickle.dump(tuned_knn_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_dataset2.pkl"), 'wb'))
-        print('''
-        #===============================================================================================
-        # Neural Network
-        #===============================================================================================
-        ''')
-        print("\twine\n----")
-        tuned_neural_network_model_wine = neural_network_experiments(X_train1, y_train1, data='wine')
-        print("\tpima\n----")
-        tuned_neural_network_model_dataset2 = neural_network_experiments(X_train2, y_train2, data='pima')
-        generate_learning_curves(tuned_neural_network_model_wine,
-                                 tuned_neural_network_model_dataset2,
-                                 X_train1, y_train1, X_train2, y_train2, 'Neural Network')
-        pickle.dump(tuned_neural_network_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_wine.pkl"), 'wb'))
-        pickle.dump(tuned_neural_network_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'wb'))
+        if 'boost' in models:
+            print('''
+            #===============================================================================================
+            # Boosted Tree    
+            #===============================================================================================
+            ''')
+            if warm_start:
+                tuned_boosted_tree_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_wine.pkl"), 'rb'))
+                tuned_boosted_tree_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_dataset2.pkl"), 'rb'))
+            else:
+                print("\twine\n----")
+                tuned_boosted_tree_model_wine = boosted_tree_experiments(tuned_decision_tree_model_wine.best_estimator_.get_params()['cfr'],
+                                                                         X_train1, y_train1, data='wine')
+                print("\tpima\n----")
+                tuned_boosted_tree_model_dataset2 = boosted_tree_experiments(tuned_decision_tree_model_dataset2.best_estimator_.get_params()['cfr'], X_train2, y_train2, data='pima')
+                generate_learning_curves(tuned_boosted_tree_model_wine,
+                                         tuned_boosted_tree_model_dataset2,
+                                         X_train1, y_train1, X_train2, y_train2, 'Boosted Tree')
+                pickle.dump(tuned_boosted_tree_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_wine.pkl"), 'wb'))
+                pickle.dump(tuned_boosted_tree_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_dataset2.pkl"), 'wb'))
+
+        
+        if 'knn' in models:
+            print('''
+            #===============================================================================================
+            # kNN
+            #===============================================================================================
+            ''')
+            if warm_start:
+                tuned_knn_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_wine.pkl"), 'rb'))
+                tuned_knn_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_dataset2.pkl"), 'rb'))
+            else:    
+                print("\twine\n----")
+                tuned_knn_model_wine = knn_experiments(X_train1, y_train1, data='wine')
+                print("\tpima\n----")
+                tuned_knn_model_dataset2 = knn_experiments(X_train2, y_train2, data='pima')
+                generate_learning_curves(tuned_knn_model_wine,
+                                         tuned_knn_model_dataset2,
+                                         X_train1, y_train1, X_train2, y_train2, 'kNN')
+                pickle.dump(tuned_knn_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_wine.pkl"), 'wb'))
+                pickle.dump(tuned_knn_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_dataset2.pkl"), 'wb'))
+
+        if 'ann' in models:
+            print('''
+            #===============================================================================================
+            # Neural Network
+            #===============================================================================================
+            ''')
+            if warm_start:
+                tuned_neural_network_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_wine.pkl"), 'rb'))
+                tuned_neural_network_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'rb'))
+                
+            else:
+                print("\twine\n----")
+                tuned_neural_network_model_wine = neural_network_experiments(X_train1, y_train1, data='wine')
+                print("\tpima\n----")
+                tuned_neural_network_model_dataset2 = neural_network_experiments(X_train2, y_train2, data='pima')
+                generate_learning_curves(tuned_neural_network_model_wine,
+                                         tuned_neural_network_model_dataset2,
+                                         X_train1, y_train1, X_train2, y_train2, 'Neural Network')
+                pickle.dump(tuned_neural_network_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_wine.pkl"), 'wb'))
+                pickle.dump(tuned_neural_network_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'wb'))
     
-        print('''
-        #===============================================================================================
-        # Support Vector Machine
-        #===============================================================================================    
-        ''')
-        print("\twine\n----")
-        tuned_support_vector_machine_model_wine = support_vector_machine_experiments(X_train1, y_train1, data='wine')
-        print("\tpima\n----")
-        tuned_support_vector_machine_model_dataset2 = support_vector_machine_experiments(X_train2, y_train2, data='pima')
-        generate_learning_curves(tuned_support_vector_machine_model_wine,
-                                 tuned_support_vector_machine_model_dataset2,
-                                 X_train1, y_train1, X_train2, y_train2, "Support Vector Machine")
-        pickle.dump(tuned_support_vector_machine_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'wb'))
-        pickle.dump(tuned_support_vector_machine_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'wb'))
-        print('''
-        #===============================================================================================
-        # Final model comparison
-        #===============================================================================================
-        ''') 
-    if warm_start:
-        tuned_decision_tree_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_wine.pkl"), 'rb'))
-        tuned_decision_tree_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_dataset2.pkl"), 'rb'))
-        
-        tuned_boosted_tree_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_wine.pkl"), 'rb'))
-        tuned_boosted_tree_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_dataset2.pkl"), 'rb'))
-        
-        tuned_knn_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_wine.pkl"), 'rb'))
-        tuned_knn_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_dataset2.pkl"), 'rb'))
-        
-        tuned_neural_network_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_wine.pkl"), 'rb'))
-        tuned_neural_network_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'rb'))
-        
-        tuned_support_vector_machine_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'rb'))
-        tuned_support_vector_machine_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'rb'))
-        
+        if 'svm' in models:
+            print('''
+            #===============================================================================================
+            # Support Vector Machine
+            #===============================================================================================    
+            ''')
+            if warm_start:
+                
+                
+                
+                
+                tuned_support_vector_machine_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'rb'))
+                tuned_support_vector_machine_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'rb'))
+            else:
+                print("\twine\n----")
+                tuned_support_vector_machine_model_wine = support_vector_machine_experiments(X_train1, y_train1, data='wine')
+                print("\tpima\n----")
+                tuned_support_vector_machine_model_dataset2 = support_vector_machine_experiments(X_train2, y_train2, data='pima')
+                generate_learning_curves(tuned_support_vector_machine_model_wine,
+                                         tuned_support_vector_machine_model_dataset2,
+                                         X_train1, y_train1, X_train2, y_train2, "Support Vector Machine")
+                pickle.dump(tuned_support_vector_machine_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'wb'))
+                pickle.dump(tuned_support_vector_machine_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'wb'))
+    print('''
+    #===============================================================================================
+    # Final model comparison
+    #===============================================================================================
+    ''') 
     
     
     result_data_wine = [['Decision Tree', 'wine', tuned_decision_tree_model_wine],

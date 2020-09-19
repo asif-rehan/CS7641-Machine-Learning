@@ -28,9 +28,12 @@ this_dir =  os.path.dirname(__file__)
 
 
 def vanilla_fit(X_train, y_train, pipe):
-    pipe.fit(X_train, y_train)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ConvergenceWarning,
+                                    module="sklearn")
+        pipe.fit(X_train, y_train)
     train_score = pipe.score(X_train, y_train)
-    print('train score before hyperparameter tuning', train_score)
+    print('train score before hyper-parameter tuning', train_score)
     # print(accuracy_score(y_test, pipe.predict(X_test)))
     return train_score
 
@@ -106,11 +109,11 @@ def knn_experiments(X_train, y_train, data='wine'):
 
 
 def neural_network_experiments(X_train, y_train, data='wine'):
-    pipe = Pipeline([('std', StandardScaler()), ('cfr', MLPClassifier(random_state=42))])
+    pipe = Pipeline([('std', StandardScaler()), ('cfr', MLPClassifier(random_state=42, max_iter=100))])
     vanilla_fit(X_train, y_train, pipe)
     
     activation = ['identity', 'logistic', 'tanh', 'relu']
-    alpha = np.logspace(-4, 4, 5)
+    alpha = np.logspace(-2, 4, 6)
 
     #===============================================================================================
     #activation = ['relu']
@@ -120,12 +123,25 @@ def neural_network_experiments(X_train, y_train, data='wine'):
     generate_validation_curve(pipe, X_train, y_train, model='Neural Network',
                               param_name="activation",
                               search_range=activation, data=data)
+    
+    generate_loss_learning_curve(pipe, X_train, y_train, model='Neural Network',
+                              param_name="activation",
+                              search_range=activation, data=data)
+    
+    
     generate_validation_curve(pipe, X_train, y_train, model='Neural Network',
                               param_name="alpha",
+                              search_range=alpha, data=data, log=True)
+    
+    generate_loss_learning_curve(pipe, X_train, y_train, model='Neural Network',
+                              param_name="alpha",
                               search_range=alpha, data=data)
+    
     tuned_model = tune_hyperparameter({'cfr__alpha': alpha,
                                        },
                                        pipe, X_train, y_train)
+    
+    
     return tuned_model    
 
 
@@ -140,8 +156,8 @@ def support_vector_machine_experiments(X_train, y_train, data='wine'):
     
     #===============================================================================================
     #
-    #C_range = np.logspace(-2, 3, 1)
-    #gamma_range = np.logspace(-6, -1, 1)
+    #C_range = np.logspace(-2, 3, 2)
+    #gamma_range = np.logspace(-6, -1, 2)
     #kernel_options = ['linear']
     # 
     #===============================================================================================
@@ -149,10 +165,10 @@ def support_vector_machine_experiments(X_train, y_train, data='wine'):
     
     generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine',
                               param_name="C",
-                              search_range=C_range, data=data)
+                              search_range=C_range, data=data, log=True)
     generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine',
                                   param_name="gamma",
-                                  search_range=gamma_range, data=data)    
+                                  search_range=gamma_range, data=data, log=True)    
     generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine',
                                   param_name="kernel",
                                   search_range=kernel_options, data=data)    

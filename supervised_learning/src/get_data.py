@@ -7,11 +7,11 @@ this_dir =  os.path.dirname(__file__)
 
 def get_dataset1(verbose=True):
     df = pd.read_csv(os.path.join(this_dir, os.pardir, "data", "winequality-white.csv"), sep=';')
-    y1 = df['quality'] >= 7
+    y1 = df['quality'] >= 6
     print(y1.describe())
     X1 = df.drop(columns='quality')
     
-    if verbose == True:
+    if verbose:
         
         print("Value Counts", y1.value_counts())
         print(df.info())
@@ -20,7 +20,7 @@ def get_dataset1(verbose=True):
         #plt.rcParams["figure.figsize"] = 20, 20
         # Basic correlogram
         sns.pairplot(df)
-        #plt.show()
+        plt.show()
         plt.savefig(os.path.join(this_dir, os.pardir, "plot", 'wine_scatterplot.png'))
         
         print(X1.shape)
@@ -36,7 +36,7 @@ def get_dataset2(verbose=True):
     y2 = df['Outcome']
     X2 = df.drop(columns='Outcome')
     
-    if verbose == True:
+    if verbose:
         print("Value Counts", y2.value_counts())
         print(df.shape)
         print(df.info())

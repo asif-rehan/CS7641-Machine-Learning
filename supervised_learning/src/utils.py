@@ -1,4 +1,5 @@
 import warnings
+from statsmodels.sandbox.regression.kernridgeregress_class import plt_closeall
 
 warnings.filterwarnings('ignore')
 
@@ -15,6 +16,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
+from sklearn.exceptions import ConvergenceWarning
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -28,11 +30,14 @@ this_dir =  os.path.dirname(__file__)
 def tune_hyperparameter(param_grid, pipe, X_train, y_train):
     cv = StratifiedKFold(n_splits=5, random_state=42)
     tuned_model = GridSearchCV(pipe, param_grid, cv=cv, n_jobs=-1, scoring='f1')
-    tuned_model.fit(X_train, y_train)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ConvergenceWarning,
+                                    module="sklearn")
+        tuned_model.fit(X_train, y_train)
     print("Tuned params: {}".format(tuned_model.best_params_))
     
     ypred = tuned_model.predict(X_train)
-    print('refit train metrics=', classification_report(y_train, ypred))
+    print('refit train metrics=\n', classification_report(y_train, ypred))
     return tuned_model
 
 
@@ -96,30 +101,36 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     
 
     return plt
+    
 
 def generate_learning_curves(tuned_model_1, tuned_model_2, X_train1, y_train1, X_train2, y_train2, model):
     fig, axes = plt.subplots(3, 2, figsize=(10, 15))
 
     plot_learning_curve(tuned_model_1.best_estimator_
                         , 'Wine Data',
-                        X_train1, y_train1, axes=axes[:, 0], ylim=(0.7, 1.01),
+                        X_train1, y_train1, axes=axes[:, 0], ylim=(0.5, 1.01),
                         cv=StratifiedKFold(n_splits=5, random_state=42), n_jobs=-1)
+    
+    
     plot_learning_curve(tuned_model_2.best_estimator_
                         , 'Pima Data',
-                        X_train2, y_train2, axes=axes[:, 1], ylim=(0.7, 1.01),
+                        X_train2, y_train2, axes=axes[:, 1], ylim=(0.5, 1.01),
                         cv=StratifiedKFold(n_splits=5, random_state=42), n_jobs=-1)
-    fig.suptitle('Learning Curves for {}.png'.format(model))
+    
+    
     plt.tight_layout()
     plt.savefig(os.path.join(this_dir,os.pardir, "plot", '{}_learning_curve.png'.format(model)))
     #plt.show()
 
 
 
-def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_range, data='wine'):
-    train_scores, test_scores = validation_curve(estimator=pipe, X=X_train, y=y_train,
-                                                 param_name="cfr__" + param_name,
-                                                 param_range=search_range, cv=5,
-                                                 n_jobs=-1)
+def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_range, data='wine', log=False):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ConvergenceWarning, module="sklearn")
+        train_scores, test_scores = validation_curve(estimator=pipe, X=X_train, y=y_train,
+	                                                 param_name="cfr__" + param_name,
+	                                                 param_range=search_range, cv=5,
+	                                                 n_jobs=-1)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     
@@ -129,16 +140,24 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
     test_scores_std = np.std(test_scores, axis=1)
     
     #training validation curve
+    if log:
+    	plt.semilogx(search_range, np.mean(train_scores, axis=1), 'o-', color="r", label='Training score')
+    else:	
+    	plt.plot(search_range, np.mean(train_scores, axis=1), 'o-', color="r", label='Training score')
+    
+    
     plt.fill_between(search_range, train_scores_mean - train_scores_std,
                          train_scores_mean + train_scores_std, alpha=0.1,
                          color="r")
-    plt.plot(search_range, np.mean(train_scores, axis=1), 'o-', color="r", label='Training score')
     
     #Cross validation curve
+    if log:
+    	plt.semilogx(search_range, np.mean(test_scores, axis=1), 'o-', color="b", label='Cross-validation score')
+    else:
+	    plt.plot(search_range, np.mean(test_scores, axis=1), 'o-', color="b", label='Cross-validation score')
     plt.fill_between(search_range, test_scores_mean - test_scores_std,
                          test_scores_mean + test_scores_std, alpha=0.1,
                          color="b")
-    plt.plot(search_range, np.mean(test_scores, axis=1), 'o-', color="b", label='Cross-validation score')
     plt.title('Validation curve for {}'.format(model))
     plt.xlabel(param_name)
     plt.ylabel("Classification score")
@@ -151,4 +170,31 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
     plt.tight_layout()
     plt.savefig(os.path.join(this_dir,this_dir, os.pardir, "plot", 
                         '{}_val_curve_{}_{}.png'.format(data, model, param_name)), figsize=(5, 5))
+    
+    plt.close()
     #plt.show()
+
+
+def generate_loss_learning_curve(pipe, X_train, y_train, model, param_name, search_range, data='wine'):
+    plt.close()
+    for param_value in search_range:
+        pipe.fit(X_train, y_train)
+        plt.plot(pipe['cfr'].loss_curve_, label=param_value)
+    plt.legend()
+    plt.xlabel('Iteration')
+    plt.ylabel('loss')
+    plt.grid()
+    plt.legend()
+    plt.title('Neural Net Learning Loss Curve-{}-{}'.format(param_name, data))
+    
+    
+    plt.savefig(os.path.join(this_dir,this_dir, os.pardir, "plot", 
+                        '{}_loss_curve_{}_{}.png'.format(data, model, param_name)), figsize=(5, 5))
+    plt.close()
+
+    
+    
+if __name__ == '__main__':
+    print(sklearn)
+
+	
