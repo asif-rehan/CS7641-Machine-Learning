@@ -72,7 +72,7 @@ def decision_tree_experiments(X_train, y_train, data='wine'):
     tuned_model = tune_hyperparameter({'cfr__min_samples_split': min_samples_split_range,
                                           "cfr__min_samples_leaf": min_samples_leaf_range,
                                           "cfr__ccp_alpha": ccp_alpha_range,
-                                          "cfr__max_depth": max_depth_range
+                                          "cfr__max_depth": np.arange(2, 12, 2)
                                           },
                                        pipe, X_train, y_train)
     return tuned_model    
@@ -114,7 +114,7 @@ def neural_network_experiments(X_train, y_train, data='wine'):
     
     activation = ['identity', 'logistic', 'tanh', 'relu']
     alpha = np.logspace(-2, 4, 6)
-
+    hidden_layer_sizes = [(6, 4, 2), (10,5,2), (12,6,4,2)]
     #===============================================================================================
     #activation = ['relu']
     #alpha = np.logspace(-4, 4, 2)
@@ -124,7 +124,7 @@ def neural_network_experiments(X_train, y_train, data='wine'):
                               param_name="activation",
                               search_range=activation, data=data)
     
-    generate_loss_learning_curve(pipe, X_train, y_train, model='Neural Network',
+    generate_loss_learning_curve(X_train, y_train, model='Neural Network',
                               param_name="activation",
                               search_range=activation, data=data)
     
@@ -133,11 +133,20 @@ def neural_network_experiments(X_train, y_train, data='wine'):
                               param_name="alpha",
                               search_range=alpha, data=data, log=True)
     
-    generate_loss_learning_curve(pipe, X_train, y_train, model='Neural Network',
+    generate_loss_learning_curve(X_train, y_train, model='Neural Network',
                               param_name="alpha",
                               search_range=alpha, data=data)
     
+    generate_validation_curve(pipe, X_train, y_train, model='Neural Network',
+                              param_name="hidden_layer_sizes",
+                              search_range=hidden_layer_sizes, data=data)
+    
+    generate_loss_learning_curve(X_train, y_train, model='Neural Network',
+                              param_name="hidden_layer_sizes",
+                              search_range=hidden_layer_sizes, data=data)
+    
     tuned_model = tune_hyperparameter({'cfr__alpha': alpha,
+                                       'cfr__hidden_layer_sizes' : hidden_layer_sizes
                                        },
                                        pipe, X_train, y_train)
     
@@ -166,9 +175,11 @@ def support_vector_machine_experiments(X_train, y_train, data='wine'):
     generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine',
                               param_name="C",
                               search_range=C_range, data=data, log=True)
+    
     generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine',
                                   param_name="gamma",
-                                  search_range=gamma_range, data=data, log=True)    
+                                  search_range=gamma_range, data=data, log=True)  
+      
     generate_validation_curve(pipe, X_train, y_train, model='Support Vector Machine',
                                   param_name="kernel",
                                   search_range=kernel_options, data=data)    
@@ -204,7 +215,7 @@ def boosted_tree_experiments(base, X_train, y_train, data='wine'):
                               search_range=learning_rate_range, data=data)
     
     tuned_model = tune_hyperparameter({'cfr__learning_rate': learning_rate_range,
-              'cfr__n_estimators':     n_estimators_range
+              'cfr__n_estimators':     np.arange(1, 500, 100)
               },
                                        pipe, X_train, y_train)
     return tuned_model    

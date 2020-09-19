@@ -117,7 +117,7 @@ def generate_learning_curves(tuned_model_1, tuned_model_2, X_train1, y_train1, X
                         X_train2, y_train2, axes=axes[:, 1], ylim=(0.5, 1.01),
                         cv=StratifiedKFold(n_splits=5, random_state=42), n_jobs=-1)
     
-    
+    plt.suptitle('{} learning curve'.format(model))
     plt.tight_layout()
     plt.savefig(os.path.join(this_dir,os.pardir, "plot", '{}_learning_curve.png'.format(model)))
     #plt.show()
@@ -158,7 +158,7 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
     plt.fill_between(search_range, test_scores_mean - test_scores_std,
                          test_scores_mean + test_scores_std, alpha=0.1,
                          color="b")
-    plt.title('Validation curve for {}'.format(model))
+    plt.title('Validation curve for {}-{}'.format(model, data))
     plt.xlabel(param_name)
     plt.ylabel("Classification score")
     plt.legend(loc="best")
@@ -175,9 +175,12 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
     #plt.show()
 
 
-def generate_loss_learning_curve(pipe, X_train, y_train, model, param_name, search_range, data='wine'):
+def generate_loss_learning_curve(X_train, y_train, model, param_name, search_range, data='wine'):
     plt.close()
     for param_value in search_range:
+        pipe = pipe = Pipeline([('std', StandardScaler()), 
+                                ('cfr', MLPClassifier(random_state=42, 
+                                                      max_iter=100, **{param_name:param_value}))])
         pipe.fit(X_train, y_train)
         plt.plot(pipe['cfr'].loss_curve_, label=param_value)
     plt.legend()

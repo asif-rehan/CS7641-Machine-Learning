@@ -223,4 +223,4 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
     
 
 if __name__ == '__main__':
-    main(False, False)
+    main(False, False, ['dt', 'boost', 'knn'])
