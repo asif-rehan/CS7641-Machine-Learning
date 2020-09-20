@@ -1,5 +1,10 @@
 import warnings
-
+import sys
+import os
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
+    
 warnings.filterwarnings('ignore')
 
 from sklearn.ensemble import AdaBoostClassifier
@@ -20,7 +25,6 @@ import pandas as pd
 import seaborn as sns
 import time
 import datetime
-import os
 
 from utils import *
 
@@ -42,7 +46,7 @@ def vanilla_fit(X_train, y_train, pipe):
 
 def decision_tree_experiments(X_train, y_train, data='wine'):
     pipe = Pipeline([('std', StandardScaler()), ('cfr', DecisionTreeClassifier(random_state=42))])
-    vanilla_fit(X_train, y_train, pipe)
+    #vanilla_fit(X_train, y_train, pipe)
     
     min_samples_split_range = np.arange(2, 300, 30)
     min_samples_leaf_range = np.arange(1, 160, 20)
@@ -69,8 +73,8 @@ def decision_tree_experiments(X_train, y_train, data='wine'):
                           param_name="max_depth",
                           search_range=max_depth_range , data=data)    
     
-    tuned_model = tune_hyperparameter({'cfr__min_samples_split': min_samples_split_range,
-                                          "cfr__min_samples_leaf": min_samples_leaf_range,
+    tuned_model = tune_hyperparameter({'cfr__min_samples_split': np.arange(10, 100, 10),
+                                          "cfr__min_samples_leaf": np.arange(5, 100, 10),
                                           "cfr__ccp_alpha": ccp_alpha_range,
                                           "cfr__max_depth": np.arange(2, 12, 2)
                                           },
@@ -80,7 +84,7 @@ def decision_tree_experiments(X_train, y_train, data='wine'):
 
 def knn_experiments(X_train, y_train, data='wine'):
     pipe = Pipeline([('std', StandardScaler()), ('cfr', KNeighborsClassifier())])
-    vanilla_fit(X_train, y_train, pipe)
+    #vanilla_fit(X_train, y_train, pipe)
     
     n_neighbors_range = np.arange(1, 50, 10)
     p_range = np.linspace(1, 3, 5)
@@ -100,7 +104,7 @@ def knn_experiments(X_train, y_train, data='wine'):
                           param_name="weights",
                           search_range=weights , data=data)    
 
-    tuned_model = tune_hyperparameter({'cfr__n_neighbors': n_neighbors_range,
+    tuned_model = tune_hyperparameter({'cfr__n_neighbors': np.arange(1, 5, 1),
                                       'cfr__weights': weights,
                                       'cfr__p': p_range
                                       },
@@ -109,12 +113,14 @@ def knn_experiments(X_train, y_train, data='wine'):
 
 
 def neural_network_experiments(X_train, y_train, data='wine'):
-    pipe = Pipeline([('std', StandardScaler()), ('cfr', MLPClassifier(random_state=42, max_iter=100))])
-    vanilla_fit(X_train, y_train, pipe)
+    pipe = Pipeline([('std', StandardScaler()), 
+                     ('cfr', MLPClassifier((6, 4, 2), random_state=42, 
+                                           max_iter=100,  tol=0.001))])
+    #vanilla_fit(X_train, y_train, pipe)
     
     activation = ['identity', 'logistic', 'tanh', 'relu']
     alpha = np.logspace(-2, 4, 6)
-    hidden_layer_sizes = [(6, 4, 2), (10,5,2), (12,6,4,2)]
+    hidden_layer_sizes = [(6, 4, 2), (12,6,4), (12,6,4,2)]
     #===============================================================================================
     #activation = ['relu']
     #alpha = np.logspace(-4, 4, 2)
@@ -146,7 +152,9 @@ def neural_network_experiments(X_train, y_train, data='wine'):
                               search_range=hidden_layer_sizes, data=data)
     
     tuned_model = tune_hyperparameter({'cfr__alpha': alpha,
-                                       'cfr__hidden_layer_sizes' : hidden_layer_sizes
+                                       'cfr__hidden_layer_sizes' : hidden_layer_sizes,
+                                       'cfr__activation': activation
+                                       
                                        },
                                        pipe, X_train, y_train)
     
@@ -156,7 +164,7 @@ def neural_network_experiments(X_train, y_train, data='wine'):
 
 def support_vector_machine_experiments(X_train, y_train, data='wine'):
     pipe = Pipeline([('std', StandardScaler()), ('cfr', SVC(random_state=42))])
-    vanilla_fit(X_train, y_train, pipe)
+    #vanilla_fit(X_train, y_train, pipe)
     
     C_range = np.logspace(-2, 3, 5)
     gamma_range = np.logspace(-6, -1, 4)
@@ -192,9 +200,10 @@ def support_vector_machine_experiments(X_train, y_train, data='wine'):
 
 
 def boosted_tree_experiments(base, X_train, y_train, data='wine'):
+    
     pipe = Pipeline([('std', StandardScaler()),
                  ('cfr', AdaBoostClassifier(base_estimator=base, random_state=42))])
-    vanilla_fit(X_train, y_train, pipe)
+    #vanilla_fit(X_train, y_train, pipe)
     
     n_estimators_range = np.arange(1, 1000, 100)
     learning_rate_range = np.linspace(0.01, 1, 5)
@@ -215,7 +224,7 @@ def boosted_tree_experiments(base, X_train, y_train, data='wine'):
                               search_range=learning_rate_range, data=data)
     
     tuned_model = tune_hyperparameter({'cfr__learning_rate': learning_rate_range,
-              'cfr__n_estimators':     np.arange(1, 500, 100)
+              'cfr__n_estimators':     np.arange(1, 50, 10)
               },
                                        pipe, X_train, y_train)
     return tuned_model    

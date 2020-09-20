@@ -1,5 +1,14 @@
 import warnings
-from statsmodels.sandbox.regression.kernridgeregress_class import plt_closeall
+import sys
+import os
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
+    
+warnings.filterwarnings('ignore')
+    
+from sklearn.utils.testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
 
 warnings.filterwarnings('ignore')
 
@@ -21,7 +30,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import time
-import os
 import datetime
 
 this_dir =  os.path.dirname(__file__)
@@ -120,6 +128,7 @@ def generate_learning_curves(tuned_model_1, tuned_model_2, X_train1, y_train1, X
     plt.suptitle('{} learning curve'.format(model))
     plt.tight_layout()
     plt.savefig(os.path.join(this_dir,os.pardir, "plot", '{}_learning_curve.png'.format(model)))
+    plt.close()
     #plt.show()
 
 
@@ -140,6 +149,8 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
     test_scores_std = np.std(test_scores, axis=1)
     
     #training validation curve
+    if param_name == 'hidden_layer_sizes':
+        search_range = [str(i) for i in search_range]
     if log:
     	plt.semilogx(search_range, np.mean(train_scores, axis=1), 'o-', color="r", label='Training score')
     else:	
@@ -174,7 +185,7 @@ def generate_validation_curve(pipe, X_train, y_train, model, param_name, search_
     plt.close()
     #plt.show()
 
-
+@ignore_warnings(category=ConvergenceWarning)
 def generate_loss_learning_curve(X_train, y_train, model, param_name, search_range, data='wine'):
     plt.close()
     for param_value in search_range:

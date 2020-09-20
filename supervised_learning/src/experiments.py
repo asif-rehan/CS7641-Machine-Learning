@@ -1,8 +1,16 @@
+import sys
+import os
 import warnings
-
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
+    
 warnings.filterwarnings('ignore')
+    
 from warnings import simplefilter
+from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
+
 simplefilter("ignore", category=ConvergenceWarning)
 
 from sklearn.ensemble import AdaBoostClassifier
@@ -24,7 +32,7 @@ import seaborn as sns
 import time
 import datetime
 import pickle
-import os
+
 from get_data import get_dataset1, get_dataset2
 from run_model_config import *
 from utils import *
@@ -80,12 +88,16 @@ def test_score(result_df, X_train, y_train, X_test, y_test, data):
     
     return result_df
 
-def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boost']):
+@ignore_warnings(category=ConvergenceWarning)
+def main(verbose=True, warm_start=False, models=['dt', 'knn', 'svm', 'boost', 'ann']):
     X1, y1 = get_dataset1(verbose)
     X2, y2 = get_dataset2(verbose)
     
     X_train1, X_test1, y_train1, y_test1 = train_test_split(X1, y1, test_size=0.3, random_state=42)
     X_train2, X_test2, y_train2, y_test2 = train_test_split(X2, y2, test_size=0.3, random_state=42)
+    
+    result_data_wine = []
+    result_data_pima = []
     if not warm_start:
         
         if 'dt' in models:
@@ -108,7 +120,9 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
                                          'Decision Tree')
                 pickle.dump(tuned_decision_tree_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_wine.pkl"), 'wb'))
                 pickle.dump(tuned_decision_tree_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_decision_tree_model_dataset2.pkl"), 'wb'))
-    
+            result_data_wine.append(['Decision Tree', 'wine', tuned_decision_tree_model_wine])
+            result_data_pima.append(['Decision Tree', 'pima', tuned_decision_tree_model_dataset2])
+            
         if 'boost' in models:
             print('''
             #===============================================================================================
@@ -129,7 +143,8 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
                                          X_train1, y_train1, X_train2, y_train2, 'Boosted Tree')
                 pickle.dump(tuned_boosted_tree_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_wine.pkl"), 'wb'))
                 pickle.dump(tuned_boosted_tree_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_boosted_tree_model_dataset2.pkl"), 'wb'))
-
+            result_data_wine.append(['Boosted Tree', 'wine', tuned_boosted_tree_model_wine])
+            result_data_pima.append(['Boosted Tree', 'pima', tuned_boosted_tree_model_dataset2])
         
         if 'knn' in models:
             print('''
@@ -150,7 +165,9 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
                                          X_train1, y_train1, X_train2, y_train2, 'kNN')
                 pickle.dump(tuned_knn_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_wine.pkl"), 'wb'))
                 pickle.dump(tuned_knn_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_knn_model_dataset2.pkl"), 'wb'))
-
+            result_data_wine.append(['kNN', 'wine', tuned_knn_model_wine])
+            result_data_pima.append(['kNN', 'pima', tuned_knn_model_dataset2])
+            
         if 'ann' in models:
             print('''
             #===============================================================================================
@@ -162,6 +179,7 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
                 tuned_neural_network_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'rb'))
                 
             else:
+                
                 print("\twine\n----")
                 tuned_neural_network_model_wine = neural_network_experiments(X_train1, y_train1, data='wine')
                 print("\tpima\n----")
@@ -171,7 +189,9 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
                                          X_train1, y_train1, X_train2, y_train2, 'Neural Network')
                 pickle.dump(tuned_neural_network_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_wine.pkl"), 'wb'))
                 pickle.dump(tuned_neural_network_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_neural_network_model_dataset2.pkl"), 'wb'))
-    
+            result_data_wine.append(['Neural Network', 'wine', tuned_neural_network_model_wine])
+            result_data_pima.append(['Neural Network', 'pima', tuned_neural_network_model_dataset2])
+            
         if 'svm' in models:
             print('''
             #===============================================================================================
@@ -179,9 +199,6 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
             #===============================================================================================    
             ''')
             if warm_start:
-                
-                
-                
                 
                 tuned_support_vector_machine_model_wine = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'rb'))
                 tuned_support_vector_machine_model_dataset2 = pickle.load(open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'rb'))
@@ -195,6 +212,8 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
                                          X_train1, y_train1, X_train2, y_train2, "Support Vector Machine")
                 pickle.dump(tuned_support_vector_machine_model_wine, open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_wine.pkl"), 'wb'))
                 pickle.dump(tuned_support_vector_machine_model_dataset2, open(os.path.join(this_dir,os.pardir, "models", "tuned_support_vector_machine_model_dataset2.pkl"), 'wb'))
+            result_data_wine.append(['SVM', 'wine', tuned_support_vector_machine_model_wine])
+            result_data_pima.append(['SVM', 'pima', tuned_support_vector_machine_model_dataset2])
     print('''
     #===============================================================================================
     # Final model comparison
@@ -202,25 +221,15 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'ann', 'svm', 'boo
     ''') 
     
     
-    result_data_wine = [['Decision Tree', 'wine', tuned_decision_tree_model_wine],
-                   ['Boosted Tree', 'wine', tuned_boosted_tree_model_wine],
-                   ['kNN', 'wine', tuned_knn_model_wine],
-                   ['Neural Network', 'wine', tuned_neural_network_model_wine],
-                   ['SVM', 'wine', tuned_support_vector_machine_model_wine]
-                   ]
-
-    result_data_2 = [['Decision Tree', 'pima', tuned_decision_tree_model_dataset2],
-                   ['Boosted Tree', 'pima', tuned_boosted_tree_model_dataset2],
-                   ['kNN', 'pima', tuned_knn_model_dataset2],
-                   ['Neural Network', 'pima', tuned_neural_network_model_dataset2],
-                   ['SVM', 'pima', tuned_support_vector_machine_model_dataset2]]
-                            
+   
     result_df_wine = pd.DataFrame(result_data_wine, columns=['Model', 'Dataset', 'Tuned Model'])
-    result_df_pima = pd.DataFrame(result_data_2, columns=['Model', 'Dataset', 'Tuned Model'])
+    result_df_pima = pd.DataFrame(result_data_pima, columns=['Model', 'Dataset', 'Tuned Model'])
     test_score(result_df_wine, X_train1, y_train1, X_test1, y_test1, 'Wine Quality')
     test_score(result_df_pima, X_train2, y_train2, X_test2, y_test2, 'Pima Diabetes')
     return result_df_wine, result_df_pima
     
 
 if __name__ == '__main__':
-    main(False, False, ['dt', 'boost', 'knn'])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        main(False, False, ['ann'])
