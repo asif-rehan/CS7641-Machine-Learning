@@ -3,12 +3,12 @@
 ## Assignment 1
 ### Folder structures
 Please ensure these folders are in place
-      .
-      |-- supervised_learning
-      |--|-- src
-      |--|-- data
-      |--|-- plot
-      |--|-- models
+    .
+    |-- supervised_learning
+    |--|-- src
+    |--|-- data
+    |--|-- plot
+    |--|-- models
 
 ### How to run
 Run the following commands. All charts will be created in the `plot` folder. All hyperparameter-tuned models will be created in the `models` folder. 
