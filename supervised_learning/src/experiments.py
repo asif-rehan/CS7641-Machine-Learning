@@ -232,4 +232,4 @@ def main(verbose=True, warm_start=False, models=['dt', 'knn', 'svm', 'boost', 'a
 if __name__ == '__main__':
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        main(False, False, ['ann'])
+        main(True, False)
