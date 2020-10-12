@@ -17,7 +17,7 @@ output_dir = os.path.join(this_dir, problem_name)   #r"C:\Users\AREHAN2\Document
 #===================================================================================================
 # STEP2: RUN OPTIMIZATIONS FOR A RANGE OF HYPERPARAMETERS FOR RHC, SA, GA, AND MIMIC
 #===================================================================================================
-#param_search.run_param_search(problem, output_dir)
+param_search.run_param_search(problem, output_dir)
 
 #===================================================================================================
 # STEP3: READ IN THE DATA REGARDING THE RAN OPTIMIZATION  
@@ -59,22 +59,20 @@ mimic_best = mimic_run_stats[(mimic_run_stats['Keep Percent'] == 0.2) & (mimic_r
 
 lengths_experiment = [2**x for x in range(10)]
 
-#===================================================================================================
-# for length in lengths_experiment:
-#     problem = mlrose.DiscreteOpt(length=length, fitness_fn=fitness, maximize=True, max_val=2)
-#     output_dir2 = os.path.join(this_dir, problem_name+'_MIMIC_length', str(length))#r"C:\Users\AREHAN2\Documents\omscs\CS7641\randomized_optimization\4peaks_GA_length\\" + str(length)
-#     mimic = mlrose.MIMICRunner(problem=problem, 
-#         experiment_name="MIMIC", 
-#         output_directory=output_dir2, 
-#         seed=42, 
-#         iteration_list=2 ** np.arange(13), 
-#         population_sizes=[300], 
-#         max_attempts=500, 
-#         keep_percent_list=[0.2], 
-#         use_fast_mimic=True)
-#     mimic_run_stats, mimic_run_curves = mimic.run()
-#     
-#===================================================================================================
+for length in lengths_experiment:
+    problem = mlrose.DiscreteOpt(length=length, fitness_fn=fitness, maximize=True, max_val=2)
+    output_dir2 = os.path.join(this_dir, problem_name+'_MIMIC_length', str(length))#r"C:\Users\AREHAN2\Documents\omscs\CS7641\randomized_optimization\4peaks_GA_length\\" + str(length)
+    mimic = mlrose.MIMICRunner(problem=problem, 
+        experiment_name="MIMIC", 
+        output_directory=output_dir2, 
+        seed=42, 
+        iteration_list=2 ** np.arange(13), 
+        population_sizes=[300], 
+        max_attempts=500, 
+        keep_percent_list=[0.2], 
+        use_fast_mimic=True)
+    mimic_run_stats, mimic_run_curves = mimic.run()
+     
    
 #===================================================================================================
 # STEP6: PLOT PERFORMANCE FROM STEP#4 AND STEP#5 

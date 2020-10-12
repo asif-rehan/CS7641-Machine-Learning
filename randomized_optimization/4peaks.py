@@ -17,7 +17,7 @@ output_dir = os.path.join(this_dir, problem_name)   #r"C:\Users\AREHAN2\Document
 #===================================================================================================
 # STEP2: RUN OPTIMIZATIONS FOR A RANGE OF HYPERPARAMETERS FOR RHC, SA, GA, AND MIMIC
 #===================================================================================================
-#param_search.run_param_search(problem, problem, output_dir)
+param_search.run_param_search(problem, problem, output_dir)
 
 #===================================================================================================
 # STEP3: READ IN THE DATA REGARDING THE RAN OPTIMIZATION  
@@ -53,20 +53,19 @@ mimic_best = mimic_run_stats[(mimic_run_stats['Keep Percent'] == 0.2) & (mimic_r
 #===================================================================================================
 lengths_experiment = [2**x for x in range(10)]
 
-#===================================================================================================
-# for length in lengths_experiment:
-#     problem = mlrose.DiscreteOpt(length=length, fitness_fn=fitness, maximize=True, max_val=2)
-#     output_dir = os.path.join(this_dir, problem_name+'_GA_length', str(length))#r"C:\Users\AREHAN2\Documents\omscs\CS7641\randomized_optimization\4peaks_GA_length\\" + str(length)
-#     ga = mlrose.GARunner(problem=problem,
-#                          experiment_name="GA",
-#                          output_directory=output_dir,
-#                          seed=42,
-#                          iteration_list=2 ** np.arange(13),
-#                          max_attempts=1000,
-#                          population_sizes=[300],
-#                          mutation_rates=[0.3])
-#     ga_run_stats, ga_run_curves = ga.run()
-#===================================================================================================
+
+for length in lengths_experiment:
+    problem = mlrose.DiscreteOpt(length=length, fitness_fn=fitness, maximize=True, max_val=2)
+    output_dir = os.path.join(this_dir, problem_name+'_GA_length', str(length))#r"C:\Users\AREHAN2\Documents\omscs\CS7641\randomized_optimization\4peaks_GA_length\\" + str(length)
+    ga = mlrose.GARunner(problem=problem,
+                         experiment_name="GA",
+                         output_directory=output_dir,
+                         seed=42,
+                         iteration_list=2 ** np.arange(13),
+                         max_attempts=1000,
+                         population_sizes=[300],
+                         mutation_rates=[0.3])
+    ga_run_stats, ga_run_curves = ga.run()
 
 
 #===================================================================================================

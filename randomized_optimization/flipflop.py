@@ -17,7 +17,7 @@ output_dir = os.path.join(this_dir, problem_name)   #r"C:\Users\AREHAN2\Document
 #===================================================================================================
 # STEP2: RUN OPTIMIZATIONS FOR A RANGE OF HYPERPARAMETERS FOR RHC, SA, GA, AND MIMIC
 #===================================================================================================
-#param_search.run_param_search(problem, output_dir)
+param_search.run_param_search(problem, output_dir)
 
 #===================================================================================================
 # STEP3: READ IN THE DATA REGARDING THE RAN OPTIMIZATION  
@@ -55,20 +55,19 @@ mimic_best = mimic_run_stats[(mimic_run_stats['Keep Percent'] == 0.3) & (mimic_r
 #===================================================================================================
 
 lengths_experiment = [2**x for x in range(10)]
-#===================================================================================================
-# for length in lengths_experiment:
-#     problem = mlrose.DiscreteOpt(length=length, fitness_fn=fitness, maximize=True, max_val=2)
-#     output_dir2 = os.path.join(this_dir, problem_name+'_SA_length', str(length)) #r"C:\Users\AREHAN2\Documents\omscs\CS7641\randomized_optimization\4peaks_GA_length\\" + str(length)
-#     sa = mlrose.SARunner(problem=problem, 
-#         experiment_name="SA", 
-#         output_directory=output_dir2, 
-#         seed=42, 
-#         iteration_list=2 ** np.arange(14), 
-#         max_attempts=1000, 
-#         temperature_list=[500], 
-#         decay_list=[mlrose.GeomDecay])
-#     sa_run_stats, sa_run_curves = sa.run()
-#===================================================================================================
+
+for length in lengths_experiment:
+    problem = mlrose.DiscreteOpt(length=length, fitness_fn=fitness, maximize=True, max_val=2)
+    output_dir2 = os.path.join(this_dir, problem_name+'_SA_length', str(length)) #r"C:\Users\AREHAN2\Documents\omscs\CS7641\randomized_optimization\4peaks_GA_length\\" + str(length)
+    sa = mlrose.SARunner(problem=problem, 
+        experiment_name="SA", 
+        output_directory=output_dir2, 
+        seed=42, 
+        iteration_list=2 ** np.arange(14), 
+        max_attempts=1000, 
+        temperature_list=[500], 
+        decay_list=[mlrose.GeomDecay])
+    sa_run_stats, sa_run_curves = sa.run()
 
 #===================================================================================================
 # STEP6: PLOT PERFORMANCE FROM STEP#4 AND STEP#5 
