@@ -32,11 +32,13 @@ def plot_kmeans(kmeans, X, n_clusters=4, rseed=0, ax=None, save_loc='', title=''
     #     ax.add_patch(plt.Circle(c, r, fc='#CCCCCC', lw=3, alpha=0.5, zorder=1))
     # 
     #===============================================================================================
+    head = 'cluster_vis_kmeans_k{}_'.format(n_clusters) + title
+    ax.set_title(head)
     
     plot_dir = os.path.join(os.pardir, r'plot', save_loc)
     os.makedirs(plot_dir, exist_ok=True)
-    plt.savefig(os.path.join(plot_dir,'cluster_vis_kmeans_k{}_'.format(n_clusters)+title+'.png'))
-    
+    plt.savefig(os.path.join(plot_dir,head+'.png'))
+    plt.close()
 def draw_ellipse(position, covariance, ax=None, **kwargs):
     """Draw an ellipse with a given position and covariance"""
     ax = ax or plt.gca()
@@ -78,7 +80,10 @@ def plot_gmm(gmm, X, n_clusters, label=True, ax=None, save_loc='', title=''):
 
     # plot the representation of the KMeans model
     #ax.scatter(gmm.cluster_centers_, s=40, color='r', marker='X',)
+    head = 'cluster_vis_gmm_k{}_'.format(n_clusters) + title
+    ax.set_title(head)
     
     plot_dir = os.path.join(os.pardir, r'plot', save_loc)
     os.makedirs(plot_dir, exist_ok=True)
-    plt.savefig(os.path.join(plot_dir,'cluster_vis_gmm_k{}_'.format(n_clusters)+title+'.png'))
+    plt.savefig(os.path.join(plot_dir,head+'.png'))
+    plt.close()

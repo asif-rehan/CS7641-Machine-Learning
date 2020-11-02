@@ -1,16 +1,15 @@
 #%%
 import warnings
 from sklearn.metrics import mean_squared_error
-from statsmodels.multivariate.pca import pca
 from sklearn.model_selection._split import train_test_split
 import traceback
 from unsupervised_learning.src import plot_clusters
+import copy
 warnings.filterwarnings("ignore")
 import os
 os.chdir(os.path.dirname(__file__))
 
 from sklearn.metrics.pairwise import pairwise_distances
-from astroid.tests.testdata.python2 import data
 from sklearn.decomposition import PCA, FastICA
 from sklearn.ensemble import RandomForestClassifier
 import datetime
@@ -47,8 +46,7 @@ def get_best_clusters(x1, y1, x2, y2):
         gmm_pred = gmm.predict(x)
         clusters[d] = {'kmeans':{'obj':kmeans, 'clusters':kmeans_pred}, 
             'gmm':{'obj':gmm, 'clusters':gmm_pred}}
-        print('KMeans best #of components for {} ='.format(d), 2)
-        print('GMM best #of components for {} ='.format(d), 2)
+    
     return clusters
 
 def run_cluster(x1, y1, x2, y2, plot=True, title=""):
@@ -98,15 +96,20 @@ def run_cluster(x1, y1, x2, y2, plot=True, title=""):
     #print(df_kmeans)
     if plot: 
         cluster_chart(df_kmeans, df_gmm, title)
-        plt.close()
+        
+        
+        plt.close('all')
         save_loc = 'step1' if title=="" else 'step3'
-
+        
         for index, row in df_kmeans.iterrows():
-            ttl = row['Data']+'-'+title
-            plot_clusters.plot_kmeans(row['kmeans'], x1, index, rseed=42, save_loc=save_loc, title=ttl)
+            ttl = 'KMeans-' + row['Data']+'-'+title
+            x = x1 if row['Data']=='wine' else x2
+            plot_clusters.plot_kmeans(row['kmeans'], x, index, rseed=42, save_loc=save_loc, title=ttl)
+        
         for index, row in df_gmm.iterrows():
-            ttl = row['Data']+'-'+title
-            plot_clusters.plot_gmm(row['gmm'], x2, k, save_loc=save_loc, title=ttl)
+            ttl = 'GMM-'+row['Data']+'-'+title
+            x = x1 if row['Data']=='wine' else x2
+            plot_clusters.plot_gmm(row['gmm'], x, index, save_loc=save_loc, title=ttl)
     return df_kmeans, df_gmm
 
 
@@ -369,7 +372,7 @@ def run_ICA(x1, y1, x2, y2):
         for n in range(2, x.shape[1]):
             ica = FastICA(n_components=n, whiten=True, random_state=42)
             ica.fit(x)
-            x_ica = ica.transform(x)
+            x_ica = ica.transform(x, )
             kurt_mean = np.mean(np.abs((kurtosis(x_ica, axis=0, fisher=True))))
             kurt_std = np.std(np.abs((kurtosis(x_ica, axis=0, fisher=True))))
         
@@ -434,37 +437,33 @@ def get_best_dimensionality_reductions(x1, x2, best_features):
         pca = PCA(n_components=0.95, whiten=True, random_state=42)
         pca.fit(x)
         
+        
+        
         k = dim_reds.setdefault('pca', {})
         k[d] = pca
-        print('PCA best# component for {}='.format(d), pca.n_components_)
         
+        
+               
         k = dim_reds.setdefault('rfc', {})
         k[d] = best_features[d]
-        print('RFC best feature indexes for {}='.format(d), best_features[d])
-    
     
     k = dim_reds.setdefault('ica', {})
     ica = FastICA(n_components=8, whiten=True, random_state=42)
     ica.fit(x1)
     k['wine'] = ica
-    print('ICA best #of components for wine =', 8)
-    
     ica = FastICA(n_components=6, whiten=True, random_state=42)
-    ica.fit(x1)
+    ica.fit(x2)
     k['pima'] = ica
-    print('ICA best #of components for pima =', 6)
-    
-    
+        
     k = dim_reds.setdefault('rp', {})
     rp = SparseRandomProjection(random_state=42, n_components=8)
     rp.fit(x1)
     k['wine'] = rp
-    print('RP best #of components for wine =', 8)
     
     rp = SparseRandomProjection(random_state=42, n_components=6)
     rp.fit(x2)
     k['pima'] = rp
-    print('RP best #of components for pima =', 6)
+
         
     return dim_reds
 
@@ -537,7 +536,8 @@ def run_RFC(x1, y1, x2, y2):
     figure = fig = plt.figure(figsize=(5,4))
     
     for i, (d, (x, y,c )) in enumerate({'wine': (x1,y1, 'ro--'), 'pima': (x2,y2, 'bs-')}.items()):  
-        rfc = RandomForestClassifier(n_estimators=500, min_samples_leaf=round(0.1*x.shape[0]), n_jobs=-1, random_state=5)
+        rfc = RandomForestClassifier(n_estimators=100, min_samples_leaf=round(0.1*x.shape[0]), n_jobs=-1, 
+                                     random_state=42)
         feat_imp = rfc.fit(x,y).feature_importances_ 
         feat_imp = pd.DataFrame(feat_imp,columns=['Feature Importance'], index=range(x.shape[1]))
         
@@ -616,8 +616,9 @@ def main():
     #    FIND BEST PROJECTIONS/FEATURE FOR EACH DIMENSIONALITY REDUCTION/FEATURE SELECTION
     #===============================================================================================
     print("\n=========\n","STEP#2", "\n=========")
-    best_features = dimensionality_reduction(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
-    #best_features = run_RFC(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
+    #best_features = dimensionality_reduction(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
+    best_features = run_RFC(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
+    print("best RFC features", best_features)
     #best_features = {'wine': [10, 7, 1, 4, 6, 2], 'pima': [1, 5, 7, 6, 3, 2]}
     best_reducers = get_best_dimensionality_reductions(X1_train_clustr, X2_train_clustr, best_features)
     
@@ -626,58 +627,77 @@ def main():
     #===============================================================================================
     print("\n=========\n","STEP#3", "\n=========")
 
-    for d in best_reducers:
-        if d == 'rfc':
-            x1_train_clustr_reduced = X1_train_clustr[:, best_reducers[d]['wine']]
-            x2_train_clustr_reduced = X2_train_clustr[:, best_reducers[d]['pima']]
-        else:
-            reducer_wine = best_reducers[d]['wine']
-            reducer_pima = best_reducers[d]['pima']
-            x1_train_clustr_reduced = reducer_wine.transform(X1_train_clustr)
-            x2_train_clustr_reduced = reducer_pima.transform(X2_train_clustr)
-              
-        run_cluster(x1_train_clustr_reduced, y1_train_clustr, 
-                    x2_train_clustr_reduced, y2_train_clustr, plot=True, title=d+'-'+d.upper())
-                  
-        
+    #===============================================================================================
+    # for d in best_reducers:
+    #     if d == 'rfc':
+    #         x1_train_clustr_reduced = X1_train_clustr[:, best_reducers[d]['wine']]
+    #         x2_train_clustr_reduced = X2_train_clustr[:, best_reducers[d]['pima']]
+    #     else:
+    #         reducer_wine = best_reducers[d]['wine']
+    #         reducer_pima = best_reducers[d]['pima']
+    #         x1_train_clustr_reduced = reducer_wine.transform(X1_train_clustr)
+    #         x2_train_clustr_reduced = reducer_pima.transform(X2_train_clustr)
+    #            
+    #     run_cluster(x1_train_clustr_reduced, y1_train_clustr, 
+    #                 x2_train_clustr_reduced, y2_train_clustr, plot=True, title=d+'-'+d.upper())
+    #                
+    #      
+    #===============================================================================================
     #===============================================================================================
     # STEP4: BUILD 4 NEURAL NET MODELS FOR REDUCED PIMA DATASET BY USING THE DIM. RED. ALGORITHMS 
-    #===============================================================================================
     # Train NN
+    #===============================================================================================
 
-    activation = ['identity', 'logistic', 'tanh', 'relu']
-    alpha = np.logspace(-2, 4, 6)
-    hidden_layer_sizes = [(6, 4, 2), (12,6,4), (12,6,4,2)]
-
+    activation = ['logistic', 'tanh']
+    alpha = np.logspace(-2, 4, 15)
+    hidden_layer_sizes = [(12,6,4,2)]
     result_data = []
     models = {}
+    for m in ['pca', 'ica', 'rp', 'rfc', 'benchmark', 'kmeans', 'gmm']:
+        k = models.setdefault(m, {})
+        k['model'] = pipe = Pipeline([('cfr', MLPClassifier((6, 4, 2), random_state=42, activation='logistic',
+                    max_iter=100, tol=0.001, n_iter_no_change=80, learning_rate='adaptive'))])
+    
+    
+
     print("\n=========\n","STEP#4", "\n=========")
     #X2_train_nn = X2_scaler.transform(X2_train_nn)
     #X2_test = X2_scaler.transform(X2_test)
     for d in best_reducers:
         print(d.upper(), "\n=========")
+        
         if d == 'rfc':
             # REDUCE THE TRAINING SET SAVED FOR NEURAL NET USING THE BEST DIM. RED. ALGOS FROM STEP#2  
             x2_train_nn_reduced = X2_train_nn[:, best_reducers[d]['pima']]
             x2_test_reduced = X2_test[:, best_reducers[d]['pima']]
         else:
             reducer_pima = best_reducers[d]['pima']
+            print('reducer=', reducer_pima)
             x2_train_nn_reduced = reducer_pima.transform(X2_train_nn)
             x2_test_reduced = reducer_pima.transform(X2_test)
 
-        pipe = Pipeline([('cfr', MLPClassifier((6, 4, 2), random_state=42, 
-                    max_iter=100, tol=0.001))])
+        #pipe = Pipeline([('cfr', MLPClassifier((6, 4, 2), random_state=42, activation='logistic',
+        #            max_iter=100, tol=0.001))])
+        #models[d]['model'] = models[d]['model'].fit(x2_train_nn_reduced, y2_train_nn)
+        models[d]['model'] = tune_nn(activation, alpha, hidden_layer_sizes, x2_train_nn_reduced, y2_train_nn, models[d]['model'])        
+        #tuned_model = pipe
+        train_score = models[d]['model'].score(x2_train_nn_reduced, y2_train_nn)
+        test_score = models[d]['model'].score(x2_test_reduced, y2_test)
+        
+        
+        result_data.append([d.upper(), x2_train_nn_reduced.shape[1],
+                            train_score, test_score,
+                            models[d]['model'].best_estimator_['cfr'].loss_curve_, models[d]['model'].refit_time_])
 
-        tuned_model = tune_nn(activation, alpha, hidden_layer_sizes, x2_train_nn_reduced, y2_train_nn, pipe)        
-        
-        
-        
-        result_data.append([d.upper(), 'pima', tuned_model,  
-                            x2_train_nn_reduced, y2_train_nn, x2_test_reduced, y2_test])
     print('BENCHMARK', "\n=========")
-    #tuned_model = tune_nn(activation, alpha, hidden_layer_sizes, X2_train_nn, y2_train_nn, pipe)
-    result_data.append(['Benchmark', 'pima', tuned_model,  
-                            X2_train_nn, y2_train_nn, X2_test, y2_test])
+
+    models['benchmark']['model'].fit(X2_train_nn, y2_train_nn)    
+    models['benchmark']['model'] = tune_nn(activation, alpha, hidden_layer_sizes, X2_train_nn, y2_train_nn, models['benchmark']['model'])
+    #tuned_model = pipe
+    train_score = models['benchmark']['model'].score(X2_train_nn, y2_train_nn)
+    test_score = models['benchmark']['model'].score(X2_test, y2_test)
+    result_data.append(['BENCHMARK', X2_train_nn.shape[1], 
+                        train_score, test_score, models['benchmark']['model'].best_estimator_['cfr'].loss_curve_, models['benchmark']['model'].refit_time_])
     
     
     
@@ -688,30 +708,76 @@ def main():
     print("\n=========\n","STEP#5", "\n=========")
     
     d = 'pima'
-    for c in clusters[d]:
-        print(c.upper(), "\n=========")
-        cluster_algo = clusters[d]['kmeans']['obj']
-     
-        cluster_train_pred = cluster_algo.predict(X2_train_nn)
-        cluster_test_pred = cluster_algo.predict(X2_test)
-         
-        #add the clusters as a new feature
-        enhanced_X2_train_nn = np.append(X2_train_nn, cluster_train_pred.reshape(-1,1), axis=1)
-        enhanced_X2_test = np.append(X2_test, cluster_test_pred.reshape(-1,1), axis=1)
-                     
-        tuned_model = tune_nn(activation, alpha, hidden_layer_sizes, x2_train_nn_reduced, y2_train_nn, pipe)        
         
-        #tuned_model = pipe      
+    c = 'kmeans'
+    cluster_algo = clusters[d][c]['obj']
+    print(cluster_algo)
+    X2_train_nn1 = X2_train_nn
+    print('X2_train_nn', X2_train_nn)
+    
+    cluster_train_pred = cluster_algo.predict(X2_train_nn)
+    print("cluster_train_pred", cluster_train_pred)
+    cluster_test_pred = cluster_algo.predict(X2_test)
          
-        result_data.append([c.upper(), 'pima', tuned_model,  
-                            enhanced_X2_train_nn, y2_train_nn, enhanced_X2_test, y2_test])
+    #add the clusters as a new feature
+    enhanced_X2_train_nn1 = np.append(X2_train_nn, cluster_train_pred.reshape(-1,1), axis=1)
+    enhanced_X2_test1 = np.append(X2_test, cluster_test_pred.reshape(-1,1), axis=1)
+                     
+    #pipe = Pipeline([('cfr', MLPClassifier((6, 4, 2), random_state=42, activation='logistic', max_iter=100, tol=0.001))])
+    models[c]['model'] = models[c]['model'].fit(enhanced_X2_train_nn1, y2_train_nn)
+    #tuned_model = tune_nn(activation, alpha, hidden_layer_sizes, enhanced_X2_train_nn, y2_train_nn, pipe)
+    models[c]['model'] = tune_nn(activation, alpha, hidden_layer_sizes, enhanced_X2_train_nn1, y2_train_nn, models[c]['model'])        
+    train_score = models[c]['model'].score(enhanced_X2_train_nn1, y2_train_nn)
+    print(train_score)
+    test_score = models[c]['model'].score(enhanced_X2_test1, y2_test)
+    print("models[c]['model']", models[c]['model'])
+    print([c.upper(), enhanced_X2_train_nn1.shape[1],
+                            train_score, test_score, models[c]['model'].best_estimator_['cfr'].loss_curve_,
+                            
+                            ])  
+    result_data.append([c.upper(), enhanced_X2_train_nn1.shape[1],
+                            train_score, test_score, models[c]['model'].best_estimator_['cfr'].loss_curve_, 
+                            models[c]['model'].refit_time_
+                            
+                            ])
+    print(result_data)
+    
+
+    c = 'gmm'
+    cluster_algo = clusters[d][c]['obj']
+    #print(cluster_algo)
+    #print('X2_train_nn', X2_train_nn)
+    cluster_train_pred = cluster_algo.predict(X2_train_nn)
+    #print("cluster_train_pred", cluster_train_pred)
+    cluster_test_pred = cluster_algo.predict(X2_test)
+         
+    #add the clusters as a new feature
+    enhanced_X2_train_nn = np.append(X2_train_nn, cluster_train_pred.reshape(-1,1), axis=1)
+    enhanced_X2_test = np.append(X2_test, cluster_test_pred.reshape(-1,1), axis=1)
+                     
+    #pipe = Pipeline([('cfr', MLPClassifier((6, 4, 2), random_state=42, activation='logistic', max_iter=100, tol=0.001))])
+    #models[c]['model'] = models[c]['model'].fit(enhanced_X2_train_nn, y2_train_nn)
+    models[c]['model'] = tune_nn(activation, alpha, hidden_layer_sizes, enhanced_X2_train_nn, y2_train_nn, models[c]['model'])        
+    train_score = models[c]['model'].score(enhanced_X2_train_nn, y2_train_nn)
+    #print(train_score)
+    test_score = models[c]['model'].score(enhanced_X2_test, y2_test)    
+    result_data.append([c.upper(), enhanced_X2_train_nn.shape[1],
+                            train_score, test_score, models[c]['model'].best_estimator_['cfr'].loss_curve_,
+                            models[c]['model'].refit_time_
+                            
+                            ])
                  
-    result_df = pd.DataFrame(result_data, columns=['Model', 'Dataset', 'Tuned Model', 
-                                                   'Reduced X_train', 'y_train', 
-                                                   'Reduced X_test', 'y_test'])
+                 
+                 
+                 
+    print(result_data)
+                 
+                 
+    result_df = pd.DataFrame(result_data, columns=['Model', 'Dimension',  
+                     'Training F1 Score', 'Testing F1 Score', 'Loss', 'Training Time(sec)'])
     
      
-    test_score(result_df, 'pima-reduced dimension', 'step4_and_5')
+    test_score_fun(result_df, 'pima-reduced dimension', 'step4_and_5')
          
         
         
