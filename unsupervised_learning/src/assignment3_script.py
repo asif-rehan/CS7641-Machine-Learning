@@ -609,15 +609,15 @@ def main():
     # # STEP1: CLUSTER 
     #===============================================================================================
     print("\n=========\n","STEP#1", "\n=========")
-    #run_cluster(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr, True)
+    run_cluster(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr, True)
     clusters = get_best_clusters(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
     #===============================================================================================
     # # STEP2: DIMENSIONALITY REDUCTION AND FEATURE SELECTION 
     #    FIND BEST PROJECTIONS/FEATURE FOR EACH DIMENSIONALITY REDUCTION/FEATURE SELECTION
     #===============================================================================================
     print("\n=========\n","STEP#2", "\n=========")
-    #best_features = dimensionality_reduction(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
-    best_features = run_RFC(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
+    best_features = dimensionality_reduction(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
+    #best_features = run_RFC(X1_train_clustr,y1_train_clustr,X2_train_clustr,y2_train_clustr)
     print("best RFC features", best_features)
     #best_features = {'wine': [10, 7, 1, 4, 6, 2], 'pima': [1, 5, 7, 6, 3, 2]}
     best_reducers = get_best_dimensionality_reductions(X1_train_clustr, X2_train_clustr, best_features)
@@ -627,22 +627,22 @@ def main():
     #===============================================================================================
     print("\n=========\n","STEP#3", "\n=========")
 
-    #===============================================================================================
-    # for d in best_reducers:
-    #     if d == 'rfc':
-    #         x1_train_clustr_reduced = X1_train_clustr[:, best_reducers[d]['wine']]
-    #         x2_train_clustr_reduced = X2_train_clustr[:, best_reducers[d]['pima']]
-    #     else:
-    #         reducer_wine = best_reducers[d]['wine']
-    #         reducer_pima = best_reducers[d]['pima']
-    #         x1_train_clustr_reduced = reducer_wine.transform(X1_train_clustr)
-    #         x2_train_clustr_reduced = reducer_pima.transform(X2_train_clustr)
-    #            
-    #     run_cluster(x1_train_clustr_reduced, y1_train_clustr, 
-    #                 x2_train_clustr_reduced, y2_train_clustr, plot=True, title=d+'-'+d.upper())
-    #                
-    #      
-    #===============================================================================================
+    for d in best_reducers:
+        if d == 'rfc':
+            x1_train_clustr_reduced = X1_train_clustr[:, best_reducers[d]['wine']]
+            x2_train_clustr_reduced = X2_train_clustr[:, best_reducers[d]['pima']]
+        else:
+            reducer_wine = best_reducers[d]['wine']
+            reducer_pima = best_reducers[d]['pima']
+            x1_train_clustr_reduced = reducer_wine.transform(X1_train_clustr)
+            x2_train_clustr_reduced = reducer_pima.transform(X2_train_clustr)
+                
+        run_cluster(x1_train_clustr_reduced, y1_train_clustr, 
+                    x2_train_clustr_reduced, y2_train_clustr, plot=True, title=d+'-'+d.upper())
+                    
+          
+
+    
     #===============================================================================================
     # STEP4: BUILD 4 NEURAL NET MODELS FOR REDUCED PIMA DATASET BY USING THE DIM. RED. ALGORITHMS 
     # Train NN
@@ -711,12 +711,12 @@ def main():
         
     c = 'kmeans'
     cluster_algo = clusters[d][c]['obj']
-    print(cluster_algo)
+    #print(cluster_algo)
     X2_train_nn1 = X2_train_nn
-    print('X2_train_nn', X2_train_nn)
+    #print('X2_train_nn', X2_train_nn)
     
     cluster_train_pred = cluster_algo.predict(X2_train_nn)
-    print("cluster_train_pred", cluster_train_pred)
+    #print("cluster_train_pred", cluster_train_pred)
     cluster_test_pred = cluster_algo.predict(X2_test)
          
     #add the clusters as a new feature
@@ -730,17 +730,17 @@ def main():
     train_score = models[c]['model'].score(enhanced_X2_train_nn1, y2_train_nn)
     print(train_score)
     test_score = models[c]['model'].score(enhanced_X2_test1, y2_test)
-    print("models[c]['model']", models[c]['model'])
-    print([c.upper(), enhanced_X2_train_nn1.shape[1],
-                            train_score, test_score, models[c]['model'].best_estimator_['cfr'].loss_curve_,
+    #print("models[c]['model']", models[c]['model'])
+    #print([c.upper(), enhanced_X2_train_nn1.shape[1],
+    #                        train_score, test_score, models[c]['model'].best_estimator_['cfr'].loss_curve_,
                             
-                            ])  
+    #                        ])  
     result_data.append([c.upper(), enhanced_X2_train_nn1.shape[1],
                             train_score, test_score, models[c]['model'].best_estimator_['cfr'].loss_curve_, 
                             models[c]['model'].refit_time_
                             
                             ])
-    print(result_data)
+    #print(result_data)
     
 
     c = 'gmm'
@@ -770,7 +770,7 @@ def main():
                  
                  
                  
-    print(result_data)
+    #print(result_data)
                  
                  
     result_df = pd.DataFrame(result_data, columns=['Model', 'Dimension',  
